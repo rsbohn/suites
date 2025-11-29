@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Field with a Single Plant</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <style>
     :root {
       --soil-dark: #5f3b1a;
@@ -141,10 +142,81 @@
     }
 
     .banner code { color: #ffd166; }
+
+    .board {
+      position: absolute;
+      left: 18px;
+      top: 18px;
+      width: min(320px, 80vw);
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 14px;
+      padding: 12px 14px;
+      box-shadow: 0 12px 28px rgba(0,0,0,0.14);
+      backdrop-filter: blur(6px);
+      font-size: 14px;
+    }
+
+    .board header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-weight: 700;
+      color: #1f1f1f;
+    }
+
+    .board small {
+      color: #444;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+      font-size: 12px;
+    }
+
+    .messages {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .message {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      column-gap: 10px;
+      row-gap: 2px;
+      align-items: center;
+    }
+
+    .message .author {
+      font-weight: 700;
+      color: #2f7d32;
+    }
+
+    .message .text {
+      grid-column: 1 / -1;
+      color: #2b2b2b;
+    }
+
+    .message .timestamp {
+      color: #666;
+      font-size: 12px;
+    }
   </style>
 </head>
 <body>
   <div class="scene">
+    <div class="board" aria-live="polite" aria-label="Central message board, read-only">
+      <header>
+        <div>Board: Central</div>
+        <small>Read-only</small>
+      </header>
+      <ul class="messages" id="messages">
+        <li class="message">Loading messages...</li>
+      </ul>
+    </div>
     <div class="field-texture"></div>
     <div class="plant" aria-label="A single plant growing in a brown field">
       <div class="stem">
@@ -177,7 +249,48 @@
       }
     }
 
+    async function loadMessages() {
+      const list = document.getElementById('messages');
+      try {
+        const response = await fetch('/api/messages');
+        if (!response.ok) throw new Error('Request failed');
+        const data = await response.json();
+        const messages = data.messages || [];
+
+        list.innerHTML = '';
+        if (messages.length === 0) {
+          list.innerHTML = '<li class="message">No messages yet.</li>';
+          return;
+        }
+
+        messages.forEach((msg) => {
+          const item = document.createElement('li');
+          item.className = 'message';
+
+          const author = document.createElement('span');
+          author.className = 'author';
+          author.textContent = msg.author;
+
+          const timestamp = document.createElement('span');
+          timestamp.className = 'timestamp';
+          timestamp.textContent = msg.timestamp;
+
+          const text = document.createElement('span');
+          text.className = 'text';
+          text.textContent = msg.text;
+
+          item.appendChild(author);
+          item.appendChild(timestamp);
+          item.appendChild(text);
+          list.appendChild(item);
+        });
+      } catch (err) {
+        list.innerHTML = '<li class="message">Could not load messages right now.</li>';
+      }
+    }
+
     loadPlant();
+    loadMessages();
   </script>
 </body>
 </html>

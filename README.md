@@ -16,6 +16,7 @@ Static field scene with a single plant, backed by a tiny embedded SQLite databas
 
 ## Deployment (Vercel)
 
+- Production: https://suites-iota.vercel.app
 - Push this repo to Vercel; the default settings work. The `api/plant.js` function reads `data/field.db` (bundled via `vercel.json`).
 - The SQLite file is read-only inside the serverless function runtime. Writes will not persist across invocations.
 
