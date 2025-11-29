@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Field of Frogs</title>
+  <style>
+    :root {
+      --sky: #d4e5f7;
+      --storm: #9ab7d1;
+      --mud: #64563a;
+      --reed: #32583c;
+      --pad: #6da662;
+      --pad-dark: #4f7e4c;
+      --frog: #5c8c42;
+      --frog-dark: #3f6b2f;
+      --eye: #f7f7f7;
+      --iris: #1a1a1a;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: radial-gradient(circle at 30% 18%, #ffffff 0%, var(--sky) 40%, var(--storm) 100%);
+      font-family: "Segoe UI", sans-serif;
+      color: #1e1e1e;
+    }
+
+    .scene {
+      position: relative;
+      width: min(90vw, 1100px);
+      height: min(70vh, 620px);
+      background: linear-gradient(180deg, var(--sky) 0%, var(--storm) 40%, var(--mud) 40%, #403724 100%);
+      border-radius: 22px;
+      overflow: hidden;
+      box-shadow: 0 26px 70px rgba(0,0,0,0.16);
+    }
+
+    .pond {
+      position: absolute;
+      inset: 38% 8% 10% 8%;
+      background: radial-gradient(circle at 30% 20%, #9ed0e3 0%, #73aac5 40%, #3d708a 100%);
+      border-radius: 50%;
+      filter: drop-shadow(0 18px 26px rgba(0,0,0,0.25));
+      overflow: hidden;
+    }
+
+    .ripples::before,
+    .ripples::after {
+      content: "";
+      position: absolute;
+      inset: 8% 10%;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      animation: ripple 6s ease-in-out infinite;
+    }
+
+    .ripples::after {
+      inset: 16% 18%;
+      animation-delay: 1.2s;
+      border-color: rgba(255,255,255,0.2);
+    }
+
+    @keyframes ripple {
+      0% { transform: scale(0.9); opacity: 0.7; }
+      50% { transform: scale(1.05); opacity: 0.5; }
+      100% { transform: scale(1.15); opacity: 0.25; }
+    }
+
+    .reeds {
+      position: absolute;
+      left: 6%;
+      right: 6%;
+      bottom: 32%;
+      height: 18%;
+      background:
+        linear-gradient(180deg, rgba(0,0,0,0.08) 0%, transparent 40%),
+        repeating-linear-gradient(90deg, transparent 0 12px, rgba(0,0,0,0.12) 12px 14px),
+        linear-gradient(90deg, #27442f, #3a6c41);
+      mask-image: linear-gradient(180deg, black 0%, transparent 100%);
+      opacity: 0.8;
+    }
+
+    .pads {
+      position: absolute;
+      inset: 46% 10% 12% 10%;
+      pointer-events: none;
+    }
+
+    .pad {
+      position: absolute;
+      width: 160px;
+      height: 110px;
+      border-radius: 60% 40% 55% 45%;
+      background: radial-gradient(circle at 30% 30%, var(--pad), var(--pad-dark));
+      box-shadow: 0 12px 18px rgba(0,0,0,0.2);
+      transform: rotate(-4deg);
+    }
+
+    .pad.small {
+      width: 110px;
+      height: 80px;
+      opacity: 0.9;
+    }
+
+    .frog {
+      position: absolute;
+      width: 70px;
+      height: 50px;
+      background: radial-gradient(circle at 40% 40%, var(--frog), var(--frog-dark));
+      border-radius: 45% 45% 50% 50%;
+      box-shadow: 0 8px 14px rgba(0,0,0,0.2);
+      transform-origin: center;
+      animation: blink 6s infinite;
+    }
+
+    .frog::before,
+    .frog::after {
+      content: "";
+      position: absolute;
+      top: -12px;
+      width: 18px;
+      height: 18px;
+      background: var(--eye);
+      border-radius: 50%;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    }
+
+    .frog::before { left: 12px; }
+    .frog::after { right: 12px; }
+
+    .frog span {
+      position: absolute;
+      top: 3px;
+      width: 8px;
+      height: 8px;
+      background: var(--iris);
+      border-radius: 50%;
+    }
+    .frog .eye-left { left: 17px; }
+    .frog .eye-right { right: 17px; }
+
+    @keyframes blink {
+      0%, 92%, 100% { transform: scaleY(1) translateY(0); }
+      94% { transform: scaleY(0.5) translateY(2px); }
+    }
+
+    .banner {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: rgba(0,0,0,0.68);
+      color: #f8f8f8;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 13px;
+      letter-spacing: 0.02em;
+      box-shadow: 0 10px 22px rgba(0,0,0,0.22);
+    }
+
+    .plague {
+      position: absolute;
+      bottom: 12px;
+      right: 16px;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 10px 16px;
+      border-radius: 12px;
+      box-shadow: 0 12px 24px rgba(0,0,0,0.16);
+      font-weight: 700;
+      color: #2b2b2b;
+    }
+  </style>
+</head>
+<body>
+  <div class="scene" aria-label="A muddy field overrun by frogs">
+    <div class="reeds"></div>
+    <div class="pond ripples"></div>
+    <div class="pads" aria-hidden="true">
+      <div class="pad" style="top: 28%; left: 20%;"></div>
+      <div class="pad small" style="top: 54%; left: 34%;"></div>
+      <div class="pad small" style="top: 40%; right: 22%;"></div>
+      <div class="pad" style="bottom: 10%; right: 30%; transform: rotate(6deg);"></div>
+    </div>
+    <div class="banner">Alert: frog bloom across the field</div>
+    <div class="plague">Plague of Frogs</div>
+  </div>
+
+  <script>
+    (function spawnFrogs() {
+      const scene = document.querySelector('.scene');
+      const pondBounds = scene.getBoundingClientRect();
+      const frogs = 18;
+
+      for (let i = 0; i < frogs; i++) {
+        const frog = document.createElement('div');
+        frog.className = 'frog';
+        const eyeL = document.createElement('span');
+        eyeL.className = 'eye-left';
+        const eyeR = document.createElement('span');
+        eyeR.className = 'eye-right';
+        frog.appendChild(eyeL);
+        frog.appendChild(eyeR);
+
+        // Random positions skewed toward pond area
+        const x = 10 + Math.random() * 80; // percent
+        const y = 42 + Math.random() * 40; // percent
+        const scale = 0.7 + Math.random() * 0.6;
+        const rotate = -6 + Math.random() * 12;
+
+        frog.style.left = x + '%';
+        frog.style.top = y + '%';
+        frog.style.transform = `translate(-50%, -50%) scale(${scale}) rotate(${rotate}deg)`;
+
+        scene.appendChild(frog);
+      }
+    })();
+  </script>
+</body>
+</html>
