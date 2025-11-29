@@ -12,7 +12,7 @@
       --sky: #cde5ff;
       --stem: #2f7d32;
       --leaf: #3ea547;
-      --flower: #f4d35e;
+      --flower: #f7a325;
     }
 
     * { box-sizing: border-box; }
@@ -94,16 +94,16 @@
       transform: translateX(-50%);
       width: 30px;
       height: 30px;
-      background: radial-gradient(circle at 40% 40%, #fff8d6, var(--flower));
+      background: radial-gradient(circle at 40% 40%, #ffe9c8, var(--flower));
       border-radius: 50%;
-      box-shadow: 0 6px 10px rgba(0,0,0,0.12);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.18);
     }
 
     .label {
       position: absolute;
-      left: 50%;
-      bottom: 6%;
-      transform: translateX(-50%);
+      right: 18px;
+      bottom: 18px;
+      transform: none;
       background: rgba(255,255,255,0.84);
       padding: 10px 16px;
       border-radius: 12px;
@@ -143,17 +143,47 @@
 
     .banner code { color: #ffd166; }
 
-    .board {
+    .info-panel {
       position: absolute;
       left: 18px;
       top: 18px;
-      width: min(320px, 80vw);
+      width: min(360px, 88vw);
       background: rgba(255, 255, 255, 0.9);
-      border-radius: 14px;
-      padding: 12px 14px;
+      border-radius: 16px;
       box-shadow: 0 12px 28px rgba(0,0,0,0.14);
       backdrop-filter: blur(6px);
       font-size: 14px;
+      overflow: hidden;
+      max-height: calc(100% - 36px);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+      border-bottom: 1px solid rgba(0,0,0,0.08);
+    }
+
+    .tab {
+      background: transparent;
+      border: 0;
+      padding: 10px 0;
+      font-weight: 700;
+      color: #1f1f1f;
+      cursor: pointer;
+    }
+
+    .tab.active {
+      background: rgba(0,0,0,0.06);
+    }
+
+    .card {
+      padding: 12px 14px;
+      min-height: 150px;
+      flex: 1;
+      overflow-y: auto;
     }
 
     .board header {
@@ -204,19 +234,32 @@
       color: #666;
       font-size: 12px;
     }
+
+    .stack {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .item-title {
+      font-weight: 700;
+      color: #1f1f1f;
+    }
+
+    .muted {
+      color: #555;
+      font-size: 13px;
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
   </style>
 </head>
 <body>
   <div class="scene">
-    <div class="board" aria-live="polite" aria-label="Central message board, read-only">
-      <header>
-        <div>Board: Central</div>
-        <small>Read-only</small>
-      </header>
-      <ul class="messages" id="messages">
-        <li class="message">Loading messages...</li>
-      </ul>
-    </div>
     <div class="field-texture"></div>
     <div class="plant" aria-label="A single plant growing in a brown field">
       <div class="stem">
@@ -229,10 +272,48 @@
       <div class="status-dot" aria-hidden="true"></div>
       <div>
         <strong id="plant-name">Loading plant...</strong>
-        <small id="plant-desc">Fetching details from the field database.</small>
+        <small id="plant-desc">Fetching plant details.</small>
       </div>
     </div>
-    <div class="banner">Data from <code>sqlite</code> via Vercel Function</div>
+    <div class="banner" id="banner">Forecast: …</div>
+    <div class="info-panel">
+      <div class="tabs">
+        <button class="tab active" data-tab="messages-tab">Board</button>
+        <button class="tab" data-tab="weather-tab">Weather</button>
+        <button class="tab" data-tab="objects-tab">Objects</button>
+        <button class="tab" data-tab="creatures-tab">Visitors</button>
+      </div>
+      <div class="card">
+        <section class="tab-content active" id="messages-tab" aria-live="polite" aria-label="Central message board, read-only">
+          <header>
+            <div>Board: Central</div>
+            <small>Read-only</small>
+          </header>
+          <ul class="messages" id="messages">
+            <li class="message">Loading messages...</li>
+          </ul>
+        </section>
+        <section class="tab-content" id="weather-tab" aria-live="polite">
+          <header style="display:flex;justify-content:space-between;align-items:center;">
+            <div class="item-title">Weather</div>
+            <small id="weather-date" class="muted">Loading...</small>
+          </header>
+          <div id="weather-body" class="muted">Fetching weather...</div>
+        </section>
+        <section class="tab-content" id="objects-tab">
+          <div class="item-title">Objects in the field</div>
+          <ul class="stack" id="objects-list">
+            <li class="muted">Loading objects...</li>
+          </ul>
+        </section>
+        <section class="tab-content" id="creatures-tab">
+          <div class="item-title">Visitors</div>
+          <ul class="stack" id="creatures-list">
+            <li class="muted">Loading visitors...</li>
+          </ul>
+        </section>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -289,8 +370,121 @@
       }
     }
 
+    async function loadWeather() {
+      const body = document.getElementById('weather-body');
+      const dateEl = document.getElementById('weather-date');
+      const banner = document.getElementById('banner');
+      try {
+        const response = await fetch('/api/weather');
+        if (!response.ok) throw new Error('Request failed');
+        const data = await response.json();
+        const w = data.weather;
+        if (!w) throw new Error('No weather');
+
+        dateEl.textContent = w.date;
+        body.innerHTML = `
+          <div class="item-title">${w.condition}</div>
+          <div>${Number(w.temperature_c).toFixed(1)} °C, ${w.precipitation_chance}% chance of precipitation</div>
+          <div class="muted">${w.note || ''}</div>
+        `;
+        if (banner) {
+          banner.textContent = `Forecast: ${w.condition}`;
+        }
+      } catch (err) {
+        dateEl.textContent = '—';
+        body.textContent = 'Could not load weather right now.';
+        if (banner) banner.textContent = 'Forecast: unavailable';
+      }
+    }
+
+    async function loadObjects() {
+      const list = document.getElementById('objects-list');
+      try {
+        const response = await fetch('/api/objects');
+        if (!response.ok) throw new Error('Request failed');
+        const data = await response.json();
+        const objects = data.objects || [];
+        list.innerHTML = '';
+        if (objects.length === 0) {
+          list.innerHTML = '<li class="muted">No objects recorded.</li>';
+          return;
+        }
+        objects.slice(0, 5).forEach((obj) => {
+          const item = document.createElement('li');
+          const title = document.createElement('div');
+          title.className = 'item-title';
+          title.textContent = obj.name;
+          const desc = document.createElement('div');
+          desc.className = 'muted';
+          desc.textContent = obj.description;
+          const loc = document.createElement('div');
+          loc.className = 'muted';
+          loc.textContent = obj.location ? `Location: ${obj.location}` : '';
+          item.appendChild(title);
+          item.appendChild(desc);
+          if (obj.location) item.appendChild(loc);
+          list.appendChild(item);
+        });
+      } catch (err) {
+        list.innerHTML = '<li class="muted">Could not load objects.</li>';
+      }
+    }
+
+    async function loadCreatures() {
+      const list = document.getElementById('creatures-list');
+      try {
+        const response = await fetch('/api/creatures');
+        if (!response.ok) throw new Error('Request failed');
+        const data = await response.json();
+        const creatures = data.creatures || [];
+        list.innerHTML = '';
+        if (creatures.length === 0) {
+          list.innerHTML = '<li class="muted">No visitors noted.</li>';
+          return;
+        }
+        creatures.forEach((c) => {
+          const item = document.createElement('li');
+          const title = document.createElement('div');
+          title.className = 'item-title';
+          title.textContent = c.name;
+          const desc = document.createElement('div');
+          desc.className = 'muted';
+          desc.textContent = c.description;
+          const windowEl = document.createElement('div');
+          windowEl.className = 'muted';
+          windowEl.textContent = c.visit_window ? `Visits: ${c.visit_window}` : '';
+          const note = document.createElement('div');
+          note.className = 'muted';
+          note.textContent = c.note || '';
+          item.appendChild(title);
+          item.appendChild(desc);
+          if (c.visit_window) item.appendChild(windowEl);
+          if (c.note) item.appendChild(note);
+          list.appendChild(item);
+        });
+      } catch (err) {
+        list.innerHTML = '<li class="muted">Could not load visitors.</li>';
+      }
+    }
+
+    function setupTabs() {
+      const tabs = document.querySelectorAll('.tab');
+      const panels = document.querySelectorAll('.tab-content');
+      tabs.forEach((tab) => {
+        tab.addEventListener('click', () => {
+          const targetId = tab.getAttribute('data-tab');
+          tabs.forEach(t => t.classList.toggle('active', t === tab));
+          panels.forEach(p => p.classList.toggle('active', p.id === targetId));
+        });
+      });
+    }
+
+    setupTabs();
     loadPlant();
     loadMessages();
+    loadWeather();
+    loadObjects();
+    loadCreatures();
   </script>
 </body>
 </html>
