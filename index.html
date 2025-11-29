@@ -146,7 +146,7 @@
     .info-panel {
       position: absolute;
       left: 18px;
-      top: 18px;
+      top: 28px;
       width: min(360px, 88vw);
       background: rgba(255, 255, 255, 0.9);
       border-radius: 16px;
@@ -157,13 +157,22 @@
       max-height: calc(100% - 36px);
       display: flex;
       flex-direction: column;
+      z-index: 2;
+    }
+
+    .panel-controls {
+      display: flex;
+      justify-content: flex-end;
+      padding: 6px 10px 0;
+      gap: 6px;
     }
 
     .tabs {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 0;
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 4px;
       border-bottom: 1px solid rgba(0,0,0,0.08);
+      padding: 12px 10px 8px;
     }
 
     .tab {
@@ -173,7 +182,16 @@
       font-weight: 700;
       color: #1f1f1f;
       cursor: pointer;
+      flex: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      border-radius: 10px;
     }
+
+    .tab .icon { margin-right: 6px; }
+    .tab .tab-label { display: inline; }
 
     .tab.active {
       background: rgba(0,0,0,0.06);
@@ -256,6 +274,35 @@
 
     .tab-content { display: none; }
     .tab-content.active { display: block; }
+
+    /* Icon view (collapsed) */
+    .info-panel.icon-view {
+      width: 74px;
+      max-height: calc(100% - 36px);
+    }
+    .info-panel.icon-view .panel-controls { padding: 6px 6px 0; }
+    .info-panel.icon-view .tabs {
+      display: flex;
+      flex-direction: column;
+      border-bottom: none;
+      gap: 6px;
+      padding: 8px 6px 10px;
+    }
+    .info-panel.icon-view .tab {
+      background: rgba(255,255,255,0.95);
+      border: 1px solid rgba(0,0,0,0.08);
+      border-radius: 12px;
+      padding: 10px 0;
+      font-size: 16px;
+      text-align: center;
+      flex: none;
+    }
+    .info-panel.icon-view .tab.active {
+      background: rgba(0,0,0,0.08);
+    }
+    .info-panel.icon-view .tab .tab-label { display: none; }
+    .info-panel.icon-view .tab .icon { margin: 0; }
+    .info-panel.icon-view .card { display: none; }
   </style>
 </head>
 <body>
@@ -278,10 +325,10 @@
     <div class="banner" id="banner">Forecast: …</div>
     <div class="info-panel">
       <div class="tabs">
-        <button class="tab active" data-tab="messages-tab">Board</button>
-        <button class="tab" data-tab="weather-tab">Weather</button>
-        <button class="tab" data-tab="objects-tab">Objects</button>
-        <button class="tab" data-tab="creatures-tab">Visitors</button>
+        <button class="tab active" data-tab="messages-tab"><span class="icon" aria-hidden="true">📋</span><span class="tab-label">Board</span></button>
+        <button class="tab" data-tab="weather-tab"><span class="icon" aria-hidden="true">☁️</span><span class="tab-label">Weather</span></button>
+        <button class="tab" data-tab="objects-tab"><span class="icon" aria-hidden="true">📦</span><span class="tab-label">Objects</span></button>
+        <button class="tab" data-tab="creatures-tab"><span class="icon" aria-hidden="true">🐾</span><span class="tab-label">Visitors</span></button>
       </div>
       <div class="card">
         <section class="tab-content active" id="messages-tab" aria-live="polite" aria-label="Central message board, read-only">
@@ -470,11 +517,44 @@
     function setupTabs() {
       const tabs = document.querySelectorAll('.tab');
       const panels = document.querySelectorAll('.tab-content');
+      const panel = document.querySelector('.info-panel');
+      const ICON_VIEW_DELAY = 10000;
+      let iconTimeout = null;
+
+      function setIconView(on) {
+        panel.classList.toggle('icon-view', on);
+      }
+
+      function scheduleIconView() {
+        clearTimeout(iconTimeout);
+        iconTimeout = setTimeout(() => setIconView(true), ICON_VIEW_DELAY);
+      }
+
+      // Start normal, then auto-collapse after delay.
+      setIconView(false);
+      scheduleIconView();
+
       tabs.forEach((tab) => {
         tab.addEventListener('click', () => {
           const targetId = tab.getAttribute('data-tab');
+          const isActive = tab.classList.contains('active');
+
+          // If already active and in normal view, collapse to icon view.
+          if (isActive && !panel.classList.contains('icon-view')) {
+            setIconView(true);
+            return;
+          }
+
           tabs.forEach(t => t.classList.toggle('active', t === tab));
           panels.forEach(p => p.classList.toggle('active', p.id === targetId));
+
+          // If collapsed, expand to show the selected tab.
+          if (panel.classList.contains('icon-view')) {
+            setIconView(false);
+          }
+
+          // Re-arm auto-collapse.
+          scheduleIconView();
         });
       });
     }
