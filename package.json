@@ -1,0 +1,12 @@
+{
+  "name": "suites-field",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vercel dev",
+    "start": "vercel dev"
+  },
+  "dependencies": {
+    "better-sqlite3": "^9.4.0"
+  }
+}
