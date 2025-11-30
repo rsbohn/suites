@@ -143,6 +143,49 @@
 
     .banner code { color: #ffd166; }
 
+    .dirt-piles {
+      position: absolute;
+      inset: 52% 6% 10% 6%;
+      pointer-events: none;
+    }
+
+    .dirt-pile {
+      position: absolute;
+      width: 120px;
+      height: 48px;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.08), transparent 55%), var(--soil);
+      border-radius: 60% 60% 50% 50%;
+      box-shadow:
+        0 12px 18px rgba(0,0,0,0.16),
+        inset 0 -6px 10px rgba(0,0,0,0.18),
+        inset 0 6px 8px rgba(255,255,255,0.1);
+      transform: rotate(-6deg);
+      opacity: 0.85;
+    }
+
+    .dirt-pile::after {
+      content: "";
+      position: absolute;
+      bottom: -8px;
+      left: 18px;
+      right: 18px;
+      height: 14px;
+      background: radial-gradient(ellipse at center, rgba(0,0,0,0.35), transparent 65%);
+      filter: blur(8px);
+      opacity: 0.6;
+    }
+
+    .dirt-pile.small {
+      width: 90px;
+      height: 38px;
+      opacity: 0.75;
+    }
+
+    .dirt-pile.tall {
+      height: 60px;
+      transform: rotate(4deg);
+    }
+
     .info-panel {
       position: absolute;
       left: 18px;
@@ -308,6 +351,13 @@
 <body>
   <div class="scene">
     <div class="field-texture"></div>
+    <div class="dirt-piles" aria-hidden="true">
+      <div class="dirt-pile tall" style="left: 14%; bottom: 12%;"></div>
+      <div class="dirt-pile small" style="left: 38%; bottom: 9%;"></div>
+      <div class="dirt-pile" style="right: 24%; bottom: 11%;"></div>
+      <div class="dirt-pile small" style="right: 12%; bottom: 8%; transform: rotate(-2deg);"></div>
+      <div class="dirt-pile small" style="left: 55%; bottom: 6%;"></div>
+    </div>
     <div class="plant" aria-label="A single plant growing in a brown field">
       <div class="stem">
         <div class="leaf"></div>
