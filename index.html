@@ -3,204 +3,292 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Field with a Single Plant</title>
+  <title>Plague of Frogs</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=EB+Garamond:wght@600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --soil-dark: #5f3b1a;
-      --soil: #8a5a2b;
-      --sky: #cde5ff;
-      --stem: #2f7d32;
-      --leaf: #3ea547;
-      --flower: #f7a325;
+      --storm: #0f1b2c;
+      --storm-glow: #24344a;
+      --swamp: #0b2b28;
+      --pond: #103c34;
+      --lilypad: #58b35a;
+      --lilypad-edge: #82d37f;
+      --frog: #9df569;
+      --frog-dark: #5a9c47;
+      --accent: #c1ff72;
+      --ink: #e7f4ff;
+      --muted: #9bb5c7;
+      --glass: rgba(15, 27, 44, 0.6);
+      --glass-bright: rgba(255, 255, 255, 0.06);
     }
 
     * { box-sizing: border-box; }
     body {
       margin: 0;
       min-height: 100vh;
-      font-family: "Segoe UI", sans-serif;
-      background: radial-gradient(circle at 50% 15%, #ffffff 0%, var(--sky) 40%, #b7d7f5 100%);
+      font-family: "Space Grotesk", "EB Garamond", system-ui, sans-serif;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(193,255,114,0.12), transparent 35%),
+        radial-gradient(circle at 80% 10%, rgba(93,208,255,0.16), transparent 30%),
+        linear-gradient(180deg, #08111d 0%, #0b1a29 40%, #061014 100%);
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #1d1d1d;
+      color: var(--ink);
     }
 
     .scene {
       position: relative;
       width: min(90vw, 960px);
       height: min(70vh, 520px);
-      background: linear-gradient(180deg, var(--sky) 0%, var(--sky) 48%, var(--soil) 48%, var(--soil-dark) 100%);
-      border-radius: 18px;
+      background:
+        radial-gradient(circle at 50% -10%, rgba(193,255,114,0.15), transparent 40%),
+        linear-gradient(180deg, #0f1b2c 0%, #0f1b2c 40%, #0c1f26 58%, #071516 100%);
+      border-radius: 20px;
       overflow: hidden;
-      box-shadow: 0 24px 60px rgba(0,0,0,0.14);
+      box-shadow:
+        0 24px 60px rgba(0,0,0,0.25),
+        inset 0 0 0 1px rgba(255,255,255,0.05);
+      backdrop-filter: blur(4px);
     }
 
-    .field-texture {
+    .storm-texture {
       position: absolute;
-      inset: 48% 0 0 0;
+      inset: 0;
       background-image:
-        radial-gradient(circle at 10% 20%, rgba(255,255,255,0.07) 0 6%, transparent 6%),
-        radial-gradient(circle at 80% 40%, rgba(0,0,0,0.12) 0 8%, transparent 8%),
-        radial-gradient(circle at 40% 70%, rgba(255,255,255,0.05) 0 6%, transparent 6%);
-      opacity: 0.6;
+        radial-gradient(circle at 20% 10%, rgba(193,255,114,0.08) 0 22%, transparent 25%),
+        radial-gradient(circle at 70% 0%, rgba(93,208,255,0.12) 0 18%, transparent 22%),
+        repeating-linear-gradient(115deg, rgba(255,255,255,0.05) 0 1px, transparent 1px 8px);
+      opacity: 0.9;
       pointer-events: none;
     }
 
-    .plant {
+    .frog-rain {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .frog-drop {
+      position: absolute;
+      left: var(--x);
+      top: -10%;
+      font-size: var(--s, 22px);
+      filter: drop-shadow(0 6px 8px rgba(0,0,0,0.45));
+      animation: fall var(--t, 11s) linear infinite;
+      animation-delay: var(--d, 0s);
+      transform: translate3d(0, -10%, 0) rotate(var(--r, 8deg));
+    }
+
+    @keyframes fall {
+      from { transform: translate3d(0, -12%, 0) rotate(6deg); }
+      to { transform: translate3d(0, 115%, 0) rotate(-8deg); }
+    }
+
+    .swamp {
+      position: absolute;
+      inset: 46% 0 0 0;
+      background:
+        radial-gradient(ellipse at 30% 30%, rgba(88,179,90,0.18) 0 22%, transparent 26%),
+        radial-gradient(ellipse at 60% 55%, rgba(31,209,165,0.12) 0 18%, transparent 24%),
+        linear-gradient(180deg, #0b2b28 0%, #0b2b28 50%, #071410 100%);
+      border-top: 1px solid rgba(255,255,255,0.06);
+      overflow: hidden;
+    }
+
+    .ripples {
+      position: absolute;
+      inset: 0;
+      background: repeating-radial-gradient(circle at 50% 30%, rgba(255,255,255,0.06) 0 2px, transparent 2px 16px);
+      opacity: 0.2;
+      filter: blur(0.4px);
+      animation: drift 12s ease-in-out infinite alternate;
+    }
+
+    @keyframes drift {
+      from { transform: translateX(-3px) scale(1); }
+      to { transform: translateX(8px) scale(1.02); }
+    }
+
+    .lilypad {
       position: absolute;
       left: 50%;
       bottom: 14%;
+      width: 220px;
+      height: 110px;
       transform: translateX(-50%);
-      display: flex;
-      align-items: flex-end;
-      gap: 12px;
-      animation: sway 3s ease-in-out infinite alternate;
+      background: radial-gradient(ellipse at 50% 60%, var(--lilypad-edge) 0 50%, var(--lilypad) 60% 100%);
+      border-radius: 60% 70% 70% 60%;
+      box-shadow:
+        0 20px 30px rgba(0,0,0,0.32),
+        inset 0 0 0 1px rgba(255,255,255,0.18);
+      animation: bob 4s ease-in-out infinite;
+      z-index: 2;
     }
 
-    .stem {
+    @keyframes bob {
+      0% { transform: translate(-50%, 0) rotate(-1deg); }
+      50% { transform: translate(-50%, -6px) rotate(1deg); }
+      100% { transform: translate(-50%, 0) rotate(-1deg); }
+    }
+
+    .frog-throne {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      animation: jitter 3s ease-in-out infinite;
+    }
+
+    @keyframes jitter {
+      0% { transform: translateY(0); }
+      40% { transform: translateY(-4px); }
+      100% { transform: translateY(0); }
+    }
+
+    .frog {
       position: relative;
-      width: 10px;
-      height: 180px;
-      background: linear-gradient(180deg, #3ea547 0%, #2f7d32 100%);
-      border-radius: 10px;
-      box-shadow: 0 0 0 2px rgba(0,0,0,0.04);
+      width: 120px;
+      height: 82px;
+      background: linear-gradient(180deg, var(--frog) 0%, var(--frog-dark) 100%);
+      border-radius: 60% 60% 50% 50%;
+      box-shadow: 0 16px 26px rgba(0,0,0,0.32);
     }
 
-    .leaf {
+    .frog::before,
+    .frog::after {
+      content: "";
       position: absolute;
-      width: 80px;
-      height: 38px;
-      background: linear-gradient(120deg, var(--leaf), #2f7d32);
-      border-radius: 100% 100% 100% 0;
-      top: 35%;
-      left: -74px;
-      transform-origin: right center;
-      transform: rotate(-14deg);
-      box-shadow: 0 14px 20px rgba(0,0,0,0.1);
-    }
-
-    .leaf.right {
-      left: auto;
-      right: -74px;
-      transform: scaleX(-1) rotate(-10deg);
-    }
-
-    .bud {
-      position: absolute;
-      top: -20px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 30px;
-      height: 30px;
-      background: radial-gradient(circle at 40% 40%, #ffe9c8, var(--flower));
+      top: -18px;
+      width: 34px;
+      height: 34px;
+      background: radial-gradient(circle at 50% 40%, #fff 0 40%, #1b2a1b 55%);
       border-radius: 50%;
-      box-shadow: 0 6px 12px rgba(0,0,0,0.18);
+      box-shadow: 0 8px 12px rgba(0,0,0,0.35);
+    }
+
+    .frog::before { left: 20px; }
+    .frog::after { right: 20px; }
+
+    .frog .mouth {
+      position: absolute;
+      left: 22%;
+      right: 22%;
+      bottom: 18px;
+      height: 10px;
+      border-radius: 0 0 40% 40%;
+      background: radial-gradient(ellipse at center, #0e1c11 0 50%, transparent 80%);
+      box-shadow: inset 0 -4px 0 rgba(0,0,0,0.14);
+    }
+
+    .frog .spots {
+      position: absolute;
+      inset: 16px;
+      background:
+        radial-gradient(circle at 30% 40%, rgba(9,92,46,0.4) 0 16%, transparent 18%),
+        radial-gradient(circle at 70% 60%, rgba(9,92,46,0.4) 0 12%, transparent 16%),
+        radial-gradient(circle at 45% 70%, rgba(9,92,46,0.3) 0 10%, transparent 14%);
+      filter: blur(0.2px);
+    }
+
+    .proclamation {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      background: rgba(193,255,114,0.12);
+      border: 1px solid rgba(193,255,114,0.5);
+      color: var(--ink);
+      padding: 12px 14px;
+      border-radius: 14px;
+      box-shadow: 0 10px 24px rgba(0,0,0,0.2);
+      backdrop-filter: blur(8px);
+      max-width: 280px;
+      z-index: 2;
+    }
+
+    .proclamation .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .proclamation p {
+      margin: 10px 0 0;
+      font-size: 14px;
+      color: var(--muted);
     }
 
     .label {
       position: absolute;
       right: 18px;
       bottom: 18px;
-      transform: none;
-      background: rgba(255,255,255,0.84);
-      padding: 10px 16px;
+      background: var(--glass);
+      padding: 12px 16px;
       border-radius: 12px;
-      box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.24);
       display: flex;
       gap: 10px;
       align-items: center;
-      backdrop-filter: blur(6px);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.08);
+      z-index: 3;
     }
 
     .label strong { display: block; font-size: 15px; }
-    .label small { color: #4d4d4d; }
+    .label small { color: var(--muted); }
     .status-dot {
       width: 12px;
       height: 12px;
       border-radius: 50%;
-      background: #3ea547;
-      box-shadow: 0 0 0 6px rgba(62,165,71,0.16);
-    }
-
-    @keyframes sway {
-      from { transform: translateX(-50%) rotate(-1.5deg); }
-      to { transform: translateX(-50%) rotate(1.5deg); }
+      background: var(--accent);
+      box-shadow: 0 0 0 6px rgba(193,255,114,0.16);
     }
 
     .banner {
       position: absolute;
       top: 18px;
       right: 18px;
-      background: rgba(0,0,0,0.64);
-      color: #f5f5f5;
+      background: rgba(255,255,255,0.08);
+      color: var(--ink);
       padding: 10px 14px;
       border-radius: 12px;
       font-size: 13px;
       letter-spacing: 0.01em;
+      border: 1px solid rgba(255,255,255,0.1);
+      backdrop-filter: blur(6px);
+      z-index: 2;
     }
 
-    .banner code { color: #ffd166; }
-
-    .dirt-piles {
-      position: absolute;
-      inset: 52% 6% 10% 6%;
-      pointer-events: none;
-    }
-
-    .dirt-pile {
-      position: absolute;
-      width: 120px;
-      height: 48px;
-      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.08), transparent 55%), var(--soil);
-      border-radius: 60% 60% 50% 50%;
-      box-shadow:
-        0 12px 18px rgba(0,0,0,0.16),
-        inset 0 -6px 10px rgba(0,0,0,0.18),
-        inset 0 6px 8px rgba(255,255,255,0.1);
-      transform: rotate(-6deg);
-      opacity: 0.85;
-    }
-
-    .dirt-pile::after {
-      content: "";
-      position: absolute;
-      bottom: -8px;
-      left: 18px;
-      right: 18px;
-      height: 14px;
-      background: radial-gradient(ellipse at center, rgba(0,0,0,0.35), transparent 65%);
-      filter: blur(8px);
-      opacity: 0.6;
-    }
-
-    .dirt-pile.small {
-      width: 90px;
-      height: 38px;
-      opacity: 0.75;
-    }
-
-    .dirt-pile.tall {
-      height: 60px;
-      transform: rotate(4deg);
-    }
+    .banner code { color: var(--accent); }
 
     .info-panel {
       position: absolute;
       left: 18px;
-      top: 28px;
+      bottom: 18px;
       width: min(360px, 88vw);
-      background: rgba(255, 255, 255, 0.9);
+      background: var(--glass);
       border-radius: 16px;
-      box-shadow: 0 12px 28px rgba(0,0,0,0.14);
-      backdrop-filter: blur(6px);
+      box-shadow: 0 12px 28px rgba(0,0,0,0.26);
+      backdrop-filter: blur(12px);
       font-size: 14px;
       overflow: hidden;
       max-height: calc(100% - 36px);
       display: flex;
       flex-direction: column;
-      z-index: 2;
+      z-index: 3;
+      border: 1px solid rgba(255,255,255,0.08);
     }
 
     .panel-controls {
@@ -214,16 +302,16 @@
       display: flex;
       flex-wrap: nowrap;
       gap: 4px;
-      border-bottom: 1px solid rgba(0,0,0,0.08);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
       padding: 12px 10px 8px;
     }
 
     .tab {
-      background: transparent;
-      border: 0;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
       padding: 10px 0;
       font-weight: 700;
-      color: #1f1f1f;
+      color: var(--ink);
       cursor: pointer;
       flex: 1;
       display: inline-flex;
@@ -237,7 +325,7 @@
     .tab .tab-label { display: inline; }
 
     .tab.active {
-      background: rgba(0,0,0,0.06);
+      background: rgba(193,255,114,0.12);
     }
 
     .card {
@@ -245,6 +333,8 @@
       min-height: 150px;
       flex: 1;
       overflow-y: auto;
+      color: var(--ink);
+      background: rgba(255,255,255,0.02);
     }
 
     .board header {
@@ -253,11 +343,11 @@
       justify-content: space-between;
       margin-bottom: 8px;
       font-weight: 700;
-      color: #1f1f1f;
+      color: var(--ink);
     }
 
     .board small {
-      color: #444;
+      color: var(--muted);
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.02em;
@@ -283,16 +373,16 @@
 
     .message .author {
       font-weight: 700;
-      color: #2f7d32;
+      color: var(--accent);
     }
 
     .message .text {
       grid-column: 1 / -1;
-      color: #2b2b2b;
+      color: var(--ink);
     }
 
     .message .timestamp {
-      color: #666;
+      color: var(--muted);
       font-size: 12px;
     }
 
@@ -307,11 +397,11 @@
 
     .item-title {
       font-weight: 700;
-      color: #1f1f1f;
+      color: var(--ink);
     }
 
     .muted {
-      color: #555;
+      color: var(--muted);
       font-size: 13px;
     }
 
@@ -332,8 +422,8 @@
       padding: 8px 6px 10px;
     }
     .info-panel.icon-view .tab {
-      background: rgba(255,255,255,0.95);
-      border: 1px solid rgba(0,0,0,0.08);
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
       border-radius: 12px;
       padding: 10px 0;
       font-size: 16px;
@@ -350,40 +440,54 @@
 </head>
 <body>
   <div class="scene">
-    <div class="field-texture"></div>
-    <div class="dirt-piles" aria-hidden="true">
-      <div class="dirt-pile tall" style="left: 14%; bottom: 12%;"></div>
-      <div class="dirt-pile small" style="left: 38%; bottom: 9%;"></div>
-      <div class="dirt-pile" style="right: 24%; bottom: 11%;"></div>
-      <div class="dirt-pile small" style="right: 12%; bottom: 8%; transform: rotate(-2deg);"></div>
-      <div class="dirt-pile small" style="left: 55%; bottom: 6%;"></div>
+    <div class="storm-texture"></div>
+    <div class="frog-rain" aria-hidden="true">
+      <span class="frog-drop" style="--x: 4%; --d: 0s; --t: 11s;">🐸</span>
+      <span class="frog-drop" style="--x: 12%; --d: 1.2s; --t: 10s; --s: 24px;">🐸</span>
+      <span class="frog-drop" style="--x: 22%; --d: 0.6s; --t: 12s; --s: 20px;">🐸</span>
+      <span class="frog-drop" style="--x: 32%; --d: 1.8s; --t: 9s;">🐸</span>
+      <span class="frog-drop" style="--x: 42%; --d: 0.4s; --t: 13s; --s: 26px;">🐸</span>
+      <span class="frog-drop" style="--x: 52%; --d: 2.1s; --t: 10s;">🐸</span>
+      <span class="frog-drop" style="--x: 62%; --d: 0.9s; --t: 11s; --s: 28px;">🐸</span>
+      <span class="frog-drop" style="--x: 70%; --d: 1.4s; --t: 12s;">🐸</span>
+      <span class="frog-drop" style="--x: 78%; --d: 0.3s; --t: 9s;">🐸</span>
+      <span class="frog-drop" style="--x: 86%; --d: 1.7s; --t: 10s; --s: 24px;">🐸</span>
+      <span class="frog-drop" style="--x: 94%; --d: 0.8s; --t: 13s;">🐸</span>
     </div>
-    <div class="plant" aria-label="A single plant growing in a brown field">
-      <div class="stem">
-        <div class="leaf"></div>
-        <div class="leaf right"></div>
-        <div class="bud"></div>
+    <div class="proclamation" aria-live="polite">
+      <div class="badge">⚠️ Plague of Frogs</div>
+      <p>Croak advisory in effect. All dispatches route through the marsh.</p>
+    </div>
+    <div class="banner" id="banner">Forecast: …</div>
+    <div class="swamp" aria-hidden="true">
+      <div class="ripples"></div>
+      <div class="lilypad">
+        <div class="frog-throne" aria-label="Frog regent presiding over the plague">
+          <div class="frog">
+            <div class="spots"></div>
+            <div class="mouth"></div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="label" id="plant-label">
       <div class="status-dot" aria-hidden="true"></div>
       <div>
-        <strong id="plant-name">Loading plant...</strong>
-        <small id="plant-desc">Fetching plant details.</small>
+        <strong id="plant-name">Awaiting frog herald...</strong>
+        <small id="plant-desc">Summoning amphibian dossier.</small>
       </div>
     </div>
-    <div class="banner" id="banner">Forecast: …</div>
     <div class="info-panel">
       <div class="tabs">
-        <button class="tab active" data-tab="messages-tab"><span class="icon" aria-hidden="true">📋</span><span class="tab-label">Board</span></button>
-        <button class="tab" data-tab="weather-tab"><span class="icon" aria-hidden="true">☁️</span><span class="tab-label">Weather</span></button>
-        <button class="tab" data-tab="objects-tab"><span class="icon" aria-hidden="true">📦</span><span class="tab-label">Objects</span></button>
-        <button class="tab" data-tab="creatures-tab"><span class="icon" aria-hidden="true">🐾</span><span class="tab-label">Visitors</span></button>
+        <button class="tab active" data-tab="messages-tab"><span class="icon" aria-hidden="true">📋</span><span class="tab-label">Marsh Board</span></button>
+        <button class="tab" data-tab="weather-tab"><span class="icon" aria-hidden="true">☁️</span><span class="tab-label">Sky Omen</span></button>
+        <button class="tab" data-tab="objects-tab"><span class="icon" aria-hidden="true">📦</span><span class="tab-label">Flotsam</span></button>
+        <button class="tab" data-tab="creatures-tab"><span class="icon" aria-hidden="true">🐾</span><span class="tab-label">Arrivals</span></button>
       </div>
       <div class="card">
         <section class="tab-content active" id="messages-tab" aria-live="polite" aria-label="Central message board, read-only">
           <header>
-            <div>Board: Central</div>
+            <div>Board: Swamp Central</div>
             <small>Read-only</small>
           </header>
           <ul class="messages" id="messages">
@@ -398,13 +502,13 @@
           <div id="weather-body" class="muted">Fetching weather...</div>
         </section>
         <section class="tab-content" id="objects-tab">
-          <div class="item-title">Objects in the field</div>
+          <div class="item-title">Flotsam in the reeds</div>
           <ul class="stack" id="objects-list">
             <li class="muted">Loading objects...</li>
           </ul>
         </section>
         <section class="tab-content" id="creatures-tab">
-          <div class="item-title">Visitors</div>
+          <div class="item-title">Amphibious visitors</div>
           <ul class="stack" id="creatures-list">
             <li class="muted">Loading visitors...</li>
           </ul>
@@ -422,8 +526,8 @@
         document.getElementById('plant-name').textContent = data.name;
         document.getElementById('plant-desc').textContent = data.description;
       } catch (err) {
-        document.getElementById('plant-name').textContent = 'Field is quiet';
-        document.getElementById('plant-desc').textContent = 'Could not load plant data right now.';
+        document.getElementById('plant-name').textContent = 'The reeds whisper';
+        document.getElementById('plant-desc').textContent = 'Could not summon frog dossier right now.';
       }
     }
 
@@ -437,7 +541,7 @@
 
         list.innerHTML = '';
         if (messages.length === 0) {
-          list.innerHTML = '<li class="message">No messages yet.</li>';
+          list.innerHTML = '<li class="message">No croaks broadcast yet.</li>';
           return;
         }
 
@@ -463,7 +567,7 @@
           list.appendChild(item);
         });
       } catch (err) {
-        list.innerHTML = '<li class="message">Could not load messages right now.</li>';
+        list.innerHTML = '<li class="message">Could not hear the chorus right now.</li>';
       }
     }
 
@@ -489,8 +593,8 @@
         }
       } catch (err) {
         dateEl.textContent = '—';
-        body.textContent = 'Could not load weather right now.';
-        if (banner) banner.textContent = 'Forecast: unavailable';
+        body.textContent = 'Skies are silent; no omen retrieved.';
+        if (banner) banner.textContent = 'Forecast: withheld by frogs';
       }
     }
 
@@ -503,7 +607,7 @@
         const objects = data.objects || [];
         list.innerHTML = '';
         if (objects.length === 0) {
-          list.innerHTML = '<li class="muted">No objects recorded.</li>';
+          list.innerHTML = '<li class="muted">No flotsam sighted.</li>';
           return;
         }
         objects.slice(0, 5).forEach((obj) => {
@@ -523,7 +627,7 @@
           list.appendChild(item);
         });
       } catch (err) {
-        list.innerHTML = '<li class="muted">Could not load objects.</li>';
+        list.innerHTML = '<li class="muted">Flotsam log jammed.</li>';
       }
     }
 
@@ -536,7 +640,7 @@
         const creatures = data.creatures || [];
         list.innerHTML = '';
         if (creatures.length === 0) {
-          list.innerHTML = '<li class="muted">No visitors noted.</li>';
+          list.innerHTML = '<li class="muted">No ripples in the pond yet.</li>';
           return;
         }
         creatures.forEach((c) => {
@@ -560,7 +664,7 @@
           list.appendChild(item);
         });
       } catch (err) {
-        list.innerHTML = '<li class="muted">Could not load visitors.</li>';
+        list.innerHTML = '<li class="muted">Visitors declined to surface.</li>';
       }
     }
 
