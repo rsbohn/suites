@@ -3,26 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Plague of Frogs</title>
+  <title>Quiet Field</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=EB+Garamond:wght@600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --storm: #0f1b2c;
-      --storm-glow: #24344a;
-      --swamp: #0b2b28;
-      --pond: #103c34;
-      --lilypad: #58b35a;
-      --lilypad-edge: #82d37f;
-      --frog: #9df569;
-      --frog-dark: #5a9c47;
-      --accent: #c1ff72;
-      --ink: #e7f4ff;
-      --muted: #9bb5c7;
-      --glass: rgba(15, 27, 44, 0.6);
-      --glass-bright: rgba(255, 255, 255, 0.06);
+      --sky-top: #e8f5ff;
+      --sky-mid: #c9def7;
+      --sky-low: #a2c8ec;
+      --field-top: #d5edb3;
+      --field-low: #bedb91;
+      --hill-1: #b3d28a;
+      --hill-2: #a4c57d;
+      --soil: #8e7355;
+      --stem: #2f5d2f;
+      --leaf: #4c8f49;
+      --leaf-dark: #3f7c3c;
+      --card: rgba(255, 255, 255, 0.92);
+      --text: #1f2a32;
+      --muted: #5c6e6d;
     }
 
     * { box-sizing: border-box; }
@@ -31,367 +32,347 @@
       min-height: 100vh;
       font-family: "Space Grotesk", "EB Garamond", system-ui, sans-serif;
       background:
-        radial-gradient(circle at 20% 20%, rgba(193,255,114,0.12), transparent 35%),
-        radial-gradient(circle at 80% 10%, rgba(93,208,255,0.16), transparent 30%),
-        linear-gradient(180deg, #08111d 0%, #0b1a29 40%, #061014 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--ink);
+        radial-gradient(circle at 22% 18%, rgba(174, 211, 255, 0.32), transparent 38%),
+        radial-gradient(circle at 78% 12%, rgba(188, 242, 191, 0.28), transparent 34%),
+        #dff1ff;
+      display: grid;
+      place-items: center;
+      color: var(--text);
     }
 
     .scene {
       position: relative;
-      width: min(90vw, 960px);
-      height: min(70vh, 520px);
-      background:
-        radial-gradient(circle at 50% -10%, rgba(193,255,114,0.15), transparent 40%),
-        linear-gradient(180deg, #0f1b2c 0%, #0f1b2c 40%, #0c1f26 58%, #071516 100%);
-      border-radius: 20px;
+      width: min(96vw, 1080px);
+      aspect-ratio: 16 / 9;
+      background: linear-gradient(
+        180deg,
+        var(--sky-top) 0%,
+        var(--sky-mid) 35%,
+        var(--sky-low) 52%,
+        var(--field-top) 52%,
+        var(--field-low) 100%
+      );
+      border-radius: 24px;
       overflow: hidden;
       box-shadow:
-        0 24px 60px rgba(0,0,0,0.25),
-        inset 0 0 0 1px rgba(255,255,255,0.05);
-      backdrop-filter: blur(4px);
+        0 22px 48px rgba(35, 69, 87, 0.18),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.38);
     }
 
-    .storm-texture {
+    .grain {
       position: absolute;
       inset: 0;
-      background-image:
-        radial-gradient(circle at 20% 10%, rgba(193,255,114,0.08) 0 22%, transparent 25%),
-        radial-gradient(circle at 70% 0%, rgba(93,208,255,0.12) 0 18%, transparent 22%),
-        repeating-linear-gradient(115deg, rgba(255,255,255,0.05) 0 1px, transparent 1px 8px);
-      opacity: 0.9;
+      background-image: radial-gradient(#000 1px, transparent 1px);
+      background-size: 3px 3px;
+      opacity: 0.05;
       pointer-events: none;
+      mix-blend-mode: soft-light;
     }
 
-    .frog-rain {
+    .sun {
       position: absolute;
-      inset: 0;
-      overflow: hidden;
-      pointer-events: none;
-      z-index: 1;
-    }
-
-    .frog-drop,
-    .cow-drop {
-      position: absolute;
-      left: var(--x);
-      top: -12%;
-      font-size: var(--s, 22px);
-      filter: drop-shadow(0 6px 8px rgba(0,0,0,0.45));
-      animation: fall var(--t, 11s) linear infinite;
-      animation-delay: var(--d, 0s);
-      transform-origin: center;
-    }
-
-    .cow-drop {
-      font-size: var(--s, 40px);
-      filter: drop-shadow(0 10px 14px rgba(0,0,0,0.55));
-      opacity: 0.9;
-    }
-
-    @keyframes fall {
-      from {
-        top: -12%;
-        transform: rotate(8deg);
-      }
-      to {
-        top: 115%;
-        transform: rotate(-8deg);
-      }
-    }
-
-    .swamp {
-      position: absolute;
-      inset: 46% 0 0 0;
-      background:
-        radial-gradient(ellipse at 30% 30%, rgba(88,179,90,0.18) 0 22%, transparent 26%),
-        radial-gradient(ellipse at 60% 55%, rgba(31,209,165,0.12) 0 18%, transparent 24%),
-        linear-gradient(180deg, #0b2b28 0%, #0b2b28 50%, #071410 100%);
-      border-top: 1px solid rgba(255,255,255,0.06);
-      overflow: hidden;
-    }
-
-    .ripples {
-      position: absolute;
-      inset: 0;
-      background: repeating-radial-gradient(circle at 50% 30%, rgba(255,255,255,0.06) 0 2px, transparent 2px 16px);
-      opacity: 0.2;
-      filter: blur(0.4px);
-      animation: drift 12s ease-in-out infinite alternate;
-    }
-
-    @keyframes drift {
-      from { transform: translateX(-3px) scale(1); }
-      to { transform: translateX(8px) scale(1.02); }
-    }
-
-    .lilypad {
-      position: absolute;
-      left: 50%;
-      bottom: 14%;
-      width: 220px;
-      height: 110px;
-      transform: translateX(-50%);
-      background: radial-gradient(ellipse at 50% 60%, var(--lilypad-edge) 0 50%, var(--lilypad) 60% 100%);
-      border-radius: 60% 70% 70% 60%;
-      box-shadow:
-        0 20px 30px rgba(0,0,0,0.32),
-        inset 0 0 0 1px rgba(255,255,255,0.18);
-      animation: bob 4s ease-in-out infinite;
-      z-index: 2;
-    }
-
-    @keyframes bob {
-      0% { transform: translate(-50%, 0) rotate(-1deg); }
-      50% { transform: translate(-50%, -6px) rotate(1deg); }
-      100% { transform: translate(-50%, 0) rotate(-1deg); }
-    }
-
-    .frog-throne {
-      position: absolute;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      animation: jitter 3s ease-in-out infinite;
-    }
-
-    @keyframes jitter {
-      0% { transform: translateY(0); }
-      40% { transform: translateY(-4px); }
-      100% { transform: translateY(0); }
-    }
-
-    .frog {
-      position: relative;
+      top: 8%;
+      left: 10%;
       width: 120px;
-      height: 82px;
-      background: linear-gradient(180deg, var(--frog) 0%, var(--frog-dark) 100%);
-      border-radius: 60% 60% 50% 50%;
-      box-shadow: 0 16px 26px rgba(0,0,0,0.32);
+      height: 120px;
+      background: radial-gradient(circle at 38% 40%, #fff 0 24%, #ffeeb6 24% 60%, #ffd46e 60% 100%);
+      border-radius: 50%;
+      box-shadow: 0 0 60px rgba(255, 212, 110, 0.5);
     }
 
-    .frog::before,
-    .frog::after {
+    .cloud {
+      position: absolute;
+      width: 160px;
+      height: 70px;
+      background: #fff;
+      border-radius: 50px;
+      filter: drop-shadow(0 8px 20px rgba(76, 112, 136, 0.22));
+      opacity: 0.9;
+    }
+    .cloud::before,
+    .cloud::after {
       content: "";
       position: absolute;
-      top: -18px;
-      width: 34px;
-      height: 34px;
-      background: radial-gradient(circle at 50% 40%, #fff 0 40%, #1b2a1b 55%);
+      background: #fff;
       border-radius: 50%;
-      box-shadow: 0 8px 12px rgba(0,0,0,0.35);
     }
-
-    .frog::before { left: 20px; }
-    .frog::after { right: 20px; }
-
-    .frog .mouth {
-      position: absolute;
-      left: 22%;
-      right: 22%;
-      bottom: 18px;
-      height: 10px;
-      border-radius: 0 0 40% 40%;
-      background: radial-gradient(ellipse at center, #0e1c11 0 50%, transparent 80%);
-      box-shadow: inset 0 -4px 0 rgba(0,0,0,0.14);
+    .cloud::before {
+      width: 80px;
+      height: 80px;
+      top: -30px;
+      left: 16px;
     }
+    .cloud::after {
+      width: 90px;
+      height: 90px;
+      top: -22px;
+      right: 16px;
+    }
+    .cloud-1 { top: 14%; left: 36%; transform: scale(0.98); }
+    .cloud-2 { top: 10%; right: 18%; width: 140px; }
+    .cloud-3 { top: 20%; left: 18%; width: 180px; opacity: 0.8; }
 
-    .frog .spots {
+    .hill {
       position: absolute;
-      inset: 16px;
+      bottom: 28%;
+      width: 380px;
+      height: 150px;
+      background: var(--hill-1);
+      border-radius: 50% 50% 0 0;
+      box-shadow: inset 0 10px 16px rgba(255, 255, 255, 0.24);
+      filter: drop-shadow(0 12px 20px rgba(57, 94, 70, 0.2));
+    }
+    .hill-2 {
+      bottom: 23%;
+      left: 48%;
+      width: 460px;
+      height: 170px;
+      background: var(--hill-2);
+    }
+    .hill-1 { left: 10%; }
+
+    .field-texture {
+      position: absolute;
+      inset: 52% 0 0 0;
       background:
-        radial-gradient(circle at 30% 40%, rgba(9,92,46,0.4) 0 16%, transparent 18%),
-        radial-gradient(circle at 70% 60%, rgba(9,92,46,0.4) 0 12%, transparent 16%),
-        radial-gradient(circle at 45% 70%, rgba(9,92,46,0.3) 0 10%, transparent 14%);
+        repeating-linear-gradient(
+          90deg,
+          rgba(76, 143, 73, 0.18),
+          rgba(76, 143, 73, 0.18) 1px,
+          transparent 1px,
+          transparent 18px
+        ),
+        linear-gradient(180deg, transparent 0%, rgba(46, 92, 52, 0.14) 100%);
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
+    .plant-plot {
+      position: absolute;
+      left: 50%;
+      bottom: 16%;
+      width: 280px;
+      height: 230px;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+    }
+
+    .soil {
+      position: absolute;
+      bottom: 0;
+      left: 10%;
+      width: 80%;
+      height: 28px;
+      background: linear-gradient(180deg, rgba(78, 55, 32, 0.9), rgba(66, 45, 28, 0.96));
+      border-radius: 60% 60% 40% 40%;
+      box-shadow: inset 0 6px 12px rgba(0, 0, 0, 0.16);
+    }
+
+    .plant {
+      position: relative;
+      width: 160px;
+      height: 190px;
+    }
+
+    .stem {
+      position: absolute;
+      left: 50%;
+      bottom: 24px;
+      width: 14px;
+      height: 132px;
+      background: linear-gradient(180deg, #3f7c3c 0%, var(--stem) 100%);
+      border-radius: 12px;
+      transform: translateX(-50%);
+      box-shadow: inset 0 -8px 12px rgba(0, 0, 0, 0.18);
+    }
+
+    .leaf {
+      position: absolute;
+      width: 96px;
+      height: 50px;
+      background: linear-gradient(120deg, var(--leaf) 0%, var(--leaf-dark) 100%);
+      border-radius: 100% 60% 60% 100%;
+      top: 58%;
+      filter: drop-shadow(0 10px 16px rgba(34, 78, 42, 0.24));
+    }
+
+    .leaf::after {
+      content: "";
+      position: absolute;
+      inset: 12px 38% 12px 12px;
+      background: rgba(255, 255, 255, 0.16);
+      border-radius: 40%;
       filter: blur(0.2px);
     }
 
-    .proclamation {
-      position: absolute;
-      top: 16px;
-      left: 16px;
-      background: rgba(193,255,114,0.12);
-      border: 1px solid rgba(193,255,114,0.5);
-      color: var(--ink);
-      padding: 12px 14px;
-      border-radius: 14px;
-      box-shadow: 0 10px 24px rgba(0,0,0,0.2);
-      backdrop-filter: blur(8px);
-      max-width: 280px;
-      z-index: 2;
+    .leaf.left {
+      right: 50%;
+      transform: translate(8px, 6px) rotate(-18deg);
     }
 
-    .proclamation .badge {
+    .leaf.right {
+      left: 50%;
+      transform: translate(-8px, -6px) rotate(18deg);
+    }
+
+    .bud {
+      position: absolute;
+      left: 50%;
+      bottom: 142px;
+      width: 44px;
+      height: 44px;
+      transform: translateX(-50%);
+      background: radial-gradient(circle at 30% 30%, #fff 0 20%, #f8cfe0 20% 60%, #e59bc0 60% 100%);
+      border-radius: 48% 48% 44% 44%;
+      box-shadow: 0 12px 22px rgba(229, 155, 192, 0.25);
+    }
+
+    .bud::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      bottom: -12px;
+      width: 18px;
+      height: 24px;
+      transform: translateX(-50%);
+      background: #f8cfe0;
+      border-radius: 50% 50% 60% 60%;
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .title-card {
+      position: absolute;
+      top: 18px;
+      left: 18px;
+      padding: 12px 14px;
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 12px;
+      box-shadow: 0 10px 22px rgba(22, 49, 68, 0.16);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      max-width: 240px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+    }
+
+    .title-card small {
+      display: block;
+      color: var(--muted);
+      font-weight: 600;
+      margin-top: 6px;
+    }
+
+    .plant-card {
+      position: absolute;
+      right: 18px;
+      bottom: 18px;
+      width: min(340px, 90vw);
+      background: var(--card);
+      border-radius: 16px;
+      padding: 14px 16px;
+      box-shadow:
+        0 18px 36px rgba(22, 49, 68, 0.18),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+      display: grid;
+      gap: 8px;
+    }
+
+    .plant-card .name {
+      font-weight: 700;
+      font-size: 18px;
+    }
+
+    .plant-card .desc {
+      color: var(--muted);
+      line-height: 1.4;
+    }
+
+    .plant-card .status {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      padding: 6px 10px;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.08);
-      font-weight: 700;
-      letter-spacing: 0.02em;
-      text-transform: uppercase;
-      border: 1px solid rgba(255,255,255,0.08);
-    }
-
-    .proclamation p {
-      margin: 10px 0 0;
-      font-size: 14px;
       color: var(--muted);
-    }
-
-    .label {
-      position: absolute;
-      right: 18px;
-      bottom: 18px;
-      background: var(--glass);
-      padding: 12px 16px;
-      border-radius: 12px;
-      box-shadow: 0 12px 30px rgba(0,0,0,0.24);
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255,255,255,0.08);
-      z-index: 3;
-    }
-
-    .label strong { display: block; font-size: 15px; }
-    .label small { color: var(--muted); }
-    .status-dot {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      background: var(--accent);
-      box-shadow: 0 0 0 6px rgba(193,255,114,0.16);
-    }
-
-    .banner {
-      position: absolute;
-      top: 18px;
-      right: 18px;
-      background: rgba(255,255,255,0.08);
-      color: var(--ink);
-      padding: 10px 14px;
-      border-radius: 12px;
       font-size: 13px;
-      letter-spacing: 0.01em;
-      border: 1px solid rgba(255,255,255,0.1);
-      backdrop-filter: blur(6px);
-      z-index: 2;
     }
 
-    .banner code { color: var(--accent); }
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #4c8f49;
+      box-shadow: 0 0 0 6px rgba(76, 143, 73, 0.15);
+    }
 
-    .info-panel {
+    .board {
       position: absolute;
       left: 18px;
       bottom: 18px;
-      width: min(360px, 88vw);
-      background: var(--glass);
-      border-radius: 16px;
-      box-shadow: 0 12px 28px rgba(0,0,0,0.26);
-      backdrop-filter: blur(12px);
-      font-size: 14px;
+      width: min(360px, 90vw);
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 14px;
+      box-shadow: 0 14px 28px rgba(22, 49, 68, 0.16);
+      border: 1px solid rgba(255, 255, 255, 0.7);
       overflow: hidden;
-      max-height: calc(100% - 36px);
-      display: flex;
-      flex-direction: column;
-      z-index: 3;
-      border: 1px solid rgba(255,255,255,0.08);
-    }
-
-    .panel-controls {
-      display: flex;
-      justify-content: flex-end;
-      padding: 6px 10px 0;
-      gap: 6px;
-    }
-
-    .tabs {
-      display: flex;
-      flex-wrap: nowrap;
-      gap: 4px;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-      padding: 12px 10px 8px;
-    }
-
-    .tab {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
-      padding: 10px 0;
-      font-weight: 700;
-      color: var(--ink);
-      cursor: pointer;
-      flex: 1;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      border-radius: 10px;
-    }
-
-    .tab .icon { margin-right: 6px; }
-    .tab .tab-label { display: inline; }
-
-    .tab.active {
-      background: rgba(193,255,114,0.12);
-    }
-
-    .card {
-      padding: 12px 14px;
-      min-height: 150px;
-      flex: 1;
-      overflow-y: auto;
-      color: var(--ink);
-      background: rgba(255,255,255,0.02);
+      transition: transform 0.2s ease, opacity 0.2s ease;
     }
 
     .board header {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 8px;
+      padding: 10px 12px;
       font-weight: 700;
-      color: var(--ink);
+      letter-spacing: 0.01em;
+      color: var(--text);
+      border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+      background: rgba(255, 255, 255, 0.88);
     }
 
-    .board small {
-      color: var(--muted);
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.02em;
-      font-size: 12px;
+    .board .actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
+
+    .board button {
+      background: rgba(0, 0, 0, 0.06);
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      border-radius: 8px;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .board button:hover { background: rgba(0, 0, 0, 0.08); }
 
     .messages {
       list-style: none;
-      padding: 0;
+      padding: 10px 12px 12px;
       margin: 0;
       display: flex;
       flex-direction: column;
       gap: 8px;
+      font-size: 14px;
     }
 
     .message {
       display: grid;
       grid-template-columns: auto 1fr;
-      column-gap: 10px;
+      column-gap: 8px;
       row-gap: 2px;
       align-items: center;
     }
 
     .message .author {
       font-weight: 700;
-      color: var(--accent);
+      color: #2f5d2f;
     }
 
     .message .text {
       grid-column: 1 / -1;
-      color: var(--ink);
+      color: var(--text);
     }
 
     .message .timestamp {
@@ -399,151 +380,84 @@
       font-size: 12px;
     }
 
-    .stack {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin: 0;
-      padding: 0;
-      list-style: none;
+    .board.collapsed {
+      transform: translateY(8px) scale(0.96);
+      opacity: 0.75;
     }
 
-    .item-title {
-      font-weight: 700;
-      color: var(--ink);
-    }
+    .board.collapsed .messages { display: none; }
+    .board.collapsed header { border-bottom: none; }
 
-    .muted {
-      color: var(--muted);
-      font-size: 13px;
+    @media (max-width: 720px) {
+      .scene { aspect-ratio: 4 / 5; }
+      .plant-plot { bottom: 18%; }
+      .sun { width: 90px; height: 90px; }
+      .cloud { transform: scale(0.82); }
+      .hill { width: 280px; }
+      .hill-2 { width: 320px; left: 44%; }
+      .title-card, .plant-card { font-size: 14px; }
     }
-
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
-
-    /* Icon view (collapsed) */
-    .info-panel.icon-view {
-      width: 74px;
-      max-height: calc(100% - 36px);
-    }
-    .info-panel.icon-view .panel-controls { padding: 6px 6px 0; }
-    .info-panel.icon-view .tabs {
-      display: flex;
-      flex-direction: column;
-      border-bottom: none;
-      gap: 6px;
-      padding: 8px 6px 10px;
-    }
-    .info-panel.icon-view .tab {
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 12px;
-      padding: 10px 0;
-      font-size: 16px;
-      text-align: center;
-      flex: none;
-    }
-    .info-panel.icon-view .tab.active {
-      background: rgba(0,0,0,0.08);
-    }
-    .info-panel.icon-view .tab .tab-label { display: none; }
-    .info-panel.icon-view .tab .icon { margin: 0; }
-    .info-panel.icon-view .card { display: none; }
   </style>
 </head>
 <body>
   <div class="scene">
-    <div class="storm-texture"></div>
-    <div class="frog-rain" aria-hidden="true">
-      <span class="frog-drop" style="--x: 4%; --d: 0s; --t: 11s;">🐸</span>
-      <span class="frog-drop" style="--x: 12%; --d: 1.2s; --t: 10s; --s: 24px;">🐸</span>
-      <span class="frog-drop" style="--x: 22%; --d: 0.6s; --t: 12s; --s: 20px;">🐸</span>
-      <span class="frog-drop" style="--x: 32%; --d: 1.8s; --t: 9s;">🐸</span>
-      <span class="frog-drop" style="--x: 42%; --d: 0.4s; --t: 13s; --s: 26px;">🐸</span>
-      <span class="frog-drop" style="--x: 52%; --d: 2.1s; --t: 10s;">🐸</span>
-      <span class="frog-drop" style="--x: 62%; --d: 0.9s; --t: 11s; --s: 28px;">🐸</span>
-      <span class="frog-drop" style="--x: 70%; --d: 1.4s; --t: 12s;">🐸</span>
-      <span class="frog-drop" style="--x: 78%; --d: 0.3s; --t: 9s;">🐸</span>
-      <span class="frog-drop" style="--x: 86%; --d: 1.7s; --t: 10s; --s: 24px;">🐸</span>
-      <span class="frog-drop" style="--x: 94%; --d: 0.8s; --t: 13s;">🐸</span>
-      <span class="cow-drop" style="--x: 18%; --d: 3s; --t: 16s; --s: 44px;">🐄</span>
-      <span class="cow-drop" style="--x: 58%; --d: 5.5s; --t: 15s;">🐄</span>
-      <span class="cow-drop" style="--x: 82%; --d: 4s; --t: 17s; --s: 50px;">🐄</span>
+    <div class="grain" aria-hidden="true"></div>
+    <div class="sun" aria-hidden="true"></div>
+    <div class="cloud cloud-1" aria-hidden="true"></div>
+    <div class="cloud cloud-2" aria-hidden="true"></div>
+    <div class="cloud cloud-3" aria-hidden="true"></div>
+    <div class="hill hill-1" aria-hidden="true"></div>
+    <div class="hill hill-2" aria-hidden="true"></div>
+    <div class="field-texture" aria-hidden="true"></div>
+
+    <div class="title-card">
+      Quiet field
+      <small>One plant watched over at a time.</small>
     </div>
-    <div class="proclamation" aria-live="polite">
-      <div class="badge">⚠️ Plague of Frogs</div>
-      <p>Croak advisory in effect. All dispatches route through the marsh.</p>
+
+    <div class="plant-plot" aria-hidden="true">
+      <div class="plant">
+        <div class="stem"></div>
+        <div class="leaf left"></div>
+        <div class="leaf right"></div>
+        <div class="bud"></div>
+      </div>
+      <div class="soil"></div>
     </div>
-    <div class="banner" id="banner">Forecast: …</div>
-    <div class="swamp" aria-hidden="true">
-      <div class="ripples"></div>
-      <div class="lilypad">
-        <div class="frog-throne" aria-label="Frog regent presiding over the plague">
-          <div class="frog">
-            <div class="spots"></div>
-            <div class="mouth"></div>
-          </div>
+
+    <div class="plant-card" aria-live="polite">
+      <div class="status"><span class="dot" aria-hidden="true"></span> Field record</div>
+      <div class="name" id="plant-name">Loading plant...</div>
+      <div class="desc" id="plant-desc">Fetching details from the little database plot.</div>
+    </div>
+
+    <div class="board" id="message-board">
+      <header>
+        <span>Central message board</span>
+        <div class="actions">
+          <button id="toggle-board" type="button">Minimize</button>
+          <button id="refresh-board" type="button">Refresh</button>
         </div>
-      </div>
-    </div>
-    <div class="label" id="plant-label">
-      <div class="status-dot" aria-hidden="true"></div>
-      <div>
-        <strong id="plant-name">Awaiting frog herald...</strong>
-        <small id="plant-desc">Summoning amphibian dossier.</small>
-      </div>
-    </div>
-    <div class="info-panel">
-      <div class="tabs">
-        <button class="tab active" data-tab="messages-tab"><span class="icon" aria-hidden="true">📋</span><span class="tab-label">Marsh Board</span></button>
-        <button class="tab" data-tab="weather-tab"><span class="icon" aria-hidden="true">☁️</span><span class="tab-label">Sky Omen</span></button>
-        <button class="tab" data-tab="objects-tab"><span class="icon" aria-hidden="true">📦</span><span class="tab-label">Flotsam</span></button>
-        <button class="tab" data-tab="creatures-tab"><span class="icon" aria-hidden="true">🐾</span><span class="tab-label">Arrivals</span></button>
-      </div>
-      <div class="card">
-        <section class="tab-content active" id="messages-tab" aria-live="polite" aria-label="Central message board, read-only">
-          <header>
-            <div>Board: Swamp Central</div>
-            <small>Read-only</small>
-          </header>
-          <ul class="messages" id="messages">
-            <li class="message">Loading messages...</li>
-          </ul>
-        </section>
-        <section class="tab-content" id="weather-tab" aria-live="polite">
-          <header style="display:flex;justify-content:space-between;align-items:center;">
-            <div class="item-title">Weather</div>
-            <small id="weather-date" class="muted">Loading...</small>
-          </header>
-          <div id="weather-body" class="muted">Fetching weather...</div>
-        </section>
-        <section class="tab-content" id="objects-tab">
-          <div class="item-title">Flotsam in the reeds</div>
-          <ul class="stack" id="objects-list">
-            <li class="muted">Loading objects...</li>
-          </ul>
-        </section>
-        <section class="tab-content" id="creatures-tab">
-          <div class="item-title">Amphibious visitors</div>
-          <ul class="stack" id="creatures-list">
-            <li class="muted">Loading visitors...</li>
-          </ul>
-        </section>
-      </div>
+      </header>
+      <ul class="messages" id="messages">
+        <li class="message">Loading messages...</li>
+      </ul>
     </div>
   </div>
 
   <script>
     async function loadPlant() {
+      const nameEl = document.getElementById('plant-name');
+      const descEl = document.getElementById('plant-desc');
       try {
         const response = await fetch('/api/plant');
         if (!response.ok) throw new Error('Request failed');
         const data = await response.json();
-        document.getElementById('plant-name').textContent = data.name;
-        document.getElementById('plant-desc').textContent = data.description;
+        nameEl.textContent = data.name || 'Unnamed plant';
+        descEl.textContent = data.description || 'No description available.';
       } catch (err) {
-        document.getElementById('plant-name').textContent = 'The reeds whisper';
-        document.getElementById('plant-desc').textContent = 'Could not summon frog dossier right now.';
+        nameEl.textContent = 'Field is quiet';
+        descEl.textContent = 'Could not read the plant record right now.';
       }
     }
 
@@ -557,7 +471,7 @@
 
         list.innerHTML = '';
         if (messages.length === 0) {
-          list.innerHTML = '<li class="message">No croaks broadcast yet.</li>';
+          list.innerHTML = '<li class="message">No messages yet.</li>';
           return;
         }
 
@@ -583,158 +497,26 @@
           list.appendChild(item);
         });
       } catch (err) {
-        list.innerHTML = '<li class="message">Could not hear the chorus right now.</li>';
+        list.innerHTML = '<li class="message">Could not fetch the board right now.</li>';
       }
     }
 
-    async function loadWeather() {
-      const body = document.getElementById('weather-body');
-      const dateEl = document.getElementById('weather-date');
-      const banner = document.getElementById('banner');
-      try {
-        const response = await fetch('/api/weather');
-        if (!response.ok) throw new Error('Request failed');
-        const data = await response.json();
-        const w = data.weather;
-        if (!w) throw new Error('No weather');
+    function setupBoardToggle() {
+      const board = document.getElementById('message-board');
+      const toggleBtn = document.getElementById('toggle-board');
+      const refreshBtn = document.getElementById('refresh-board');
 
-        dateEl.textContent = w.date;
-        body.innerHTML = `
-          <div class="item-title">${w.condition}</div>
-          <div>${Number(w.temperature_c).toFixed(1)} °C, ${w.precipitation_chance}% chance of precipitation</div>
-          <div class="muted">${w.note || ''}</div>
-        `;
-        if (banner) {
-          banner.textContent = `Forecast: ${w.condition}`;
-        }
-      } catch (err) {
-        dateEl.textContent = '—';
-        body.textContent = 'Skies are silent; no omen retrieved.';
-        if (banner) banner.textContent = 'Forecast: withheld by frogs';
-      }
-    }
-
-    async function loadObjects() {
-      const list = document.getElementById('objects-list');
-      try {
-        const response = await fetch('/api/objects');
-        if (!response.ok) throw new Error('Request failed');
-        const data = await response.json();
-        const objects = data.objects || [];
-        list.innerHTML = '';
-        if (objects.length === 0) {
-          list.innerHTML = '<li class="muted">No flotsam sighted.</li>';
-          return;
-        }
-        objects.slice(0, 5).forEach((obj) => {
-          const item = document.createElement('li');
-          const title = document.createElement('div');
-          title.className = 'item-title';
-          title.textContent = obj.name;
-          const desc = document.createElement('div');
-          desc.className = 'muted';
-          desc.textContent = obj.description;
-          const loc = document.createElement('div');
-          loc.className = 'muted';
-          loc.textContent = obj.location ? `Location: ${obj.location}` : '';
-          item.appendChild(title);
-          item.appendChild(desc);
-          if (obj.location) item.appendChild(loc);
-          list.appendChild(item);
-        });
-      } catch (err) {
-        list.innerHTML = '<li class="muted">Flotsam log jammed.</li>';
-      }
-    }
-
-    async function loadCreatures() {
-      const list = document.getElementById('creatures-list');
-      try {
-        const response = await fetch('/api/creatures');
-        if (!response.ok) throw new Error('Request failed');
-        const data = await response.json();
-        const creatures = data.creatures || [];
-        list.innerHTML = '';
-        if (creatures.length === 0) {
-          list.innerHTML = '<li class="muted">No ripples in the pond yet.</li>';
-          return;
-        }
-        creatures.forEach((c) => {
-          const item = document.createElement('li');
-          const title = document.createElement('div');
-          title.className = 'item-title';
-          title.textContent = c.name;
-          const desc = document.createElement('div');
-          desc.className = 'muted';
-          desc.textContent = c.description;
-          const windowEl = document.createElement('div');
-          windowEl.className = 'muted';
-          windowEl.textContent = c.visit_window ? `Visits: ${c.visit_window}` : '';
-          const note = document.createElement('div');
-          note.className = 'muted';
-          note.textContent = c.note || '';
-          item.appendChild(title);
-          item.appendChild(desc);
-          if (c.visit_window) item.appendChild(windowEl);
-          if (c.note) item.appendChild(note);
-          list.appendChild(item);
-        });
-      } catch (err) {
-        list.innerHTML = '<li class="muted">Visitors declined to surface.</li>';
-      }
-    }
-
-    function setupTabs() {
-      const tabs = document.querySelectorAll('.tab');
-      const panels = document.querySelectorAll('.tab-content');
-      const panel = document.querySelector('.info-panel');
-      const ICON_VIEW_DELAY = 10000;
-      let iconTimeout = null;
-
-      function setIconView(on) {
-        panel.classList.toggle('icon-view', on);
-      }
-
-      function scheduleIconView() {
-        clearTimeout(iconTimeout);
-        iconTimeout = setTimeout(() => setIconView(true), ICON_VIEW_DELAY);
-      }
-
-      // Start normal, then auto-collapse after delay.
-      setIconView(false);
-      scheduleIconView();
-
-      tabs.forEach((tab) => {
-        tab.addEventListener('click', () => {
-          const targetId = tab.getAttribute('data-tab');
-          const isActive = tab.classList.contains('active');
-
-          // If already active and in normal view, collapse to icon view.
-          if (isActive && !panel.classList.contains('icon-view')) {
-            setIconView(true);
-            return;
-          }
-
-          tabs.forEach(t => t.classList.toggle('active', t === tab));
-          panels.forEach(p => p.classList.toggle('active', p.id === targetId));
-
-          // If collapsed, expand to show the selected tab.
-          if (panel.classList.contains('icon-view')) {
-            setIconView(false);
-          }
-
-          // Re-arm auto-collapse.
-          scheduleIconView();
-        });
+      toggleBtn.addEventListener('click', () => {
+        const collapsed = board.classList.toggle('collapsed');
+        toggleBtn.textContent = collapsed ? 'Restore' : 'Minimize';
       });
+
+      refreshBtn.addEventListener('click', loadMessages);
     }
 
-    setupTabs();
     loadPlant();
     loadMessages();
-    loadWeather();
-    loadObjects();
-    loadCreatures();
+    setupBoardToggle();
   </script>
 </body>
 </html>
