@@ -263,47 +263,6 @@
       margin-top: 6px;
     }
 
-    .plant-card {
-      position: absolute;
-      right: 18px;
-      bottom: 18px;
-      width: min(340px, 90vw);
-      background: var(--card);
-      border-radius: 16px;
-      padding: 14px 16px;
-      box-shadow:
-        0 18px 36px rgba(22, 49, 68, 0.18),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.6);
-      display: grid;
-      gap: 8px;
-    }
-
-    .plant-card .name {
-      font-weight: 700;
-      font-size: 18px;
-    }
-
-    .plant-card .desc {
-      color: var(--muted);
-      line-height: 1.4;
-    }
-
-    .plant-card .status {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      color: var(--muted);
-      font-size: 13px;
-    }
-
-    .dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: #4c8f49;
-      box-shadow: 0 0 0 6px rgba(76, 143, 73, 0.15);
-    }
-
     .board {
       position: absolute;
       left: 18px;
@@ -315,12 +274,11 @@
       border: 1px solid rgba(255, 255, 255, 0.7);
       overflow: hidden;
       transition: transform 0.2s ease, opacity 0.2s ease;
+      cursor: pointer;
     }
 
     .board header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      display: block;
       padding: 10px 12px;
       font-weight: 700;
       letter-spacing: 0.01em;
@@ -328,24 +286,6 @@
       border-bottom: 1px solid rgba(0, 0, 0, 0.04);
       background: rgba(255, 255, 255, 0.88);
     }
-
-    .board .actions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .board button {
-      background: rgba(0, 0, 0, 0.06);
-      border: 1px solid rgba(0, 0, 0, 0.06);
-      border-radius: 8px;
-      padding: 6px 10px;
-      cursor: pointer;
-      font-weight: 600;
-      color: var(--text);
-    }
-
-    .board button:hover { background: rgba(0, 0, 0, 0.08); }
 
     .messages {
       list-style: none;
@@ -395,7 +335,7 @@
       .cloud { transform: scale(0.82); }
       .hill { width: 280px; }
       .hill-2 { width: 320px; left: 44%; }
-      .title-card, .plant-card { font-size: 14px; }
+      .title-card { font-size: 14px; }
     }
   </style>
 </head>
@@ -425,20 +365,8 @@
       <div class="soil"></div>
     </div>
 
-    <div class="plant-card" aria-live="polite">
-      <div class="status"><span class="dot" aria-hidden="true"></span> Field record</div>
-      <div class="name" id="plant-name">Loading plant...</div>
-      <div class="desc" id="plant-desc">Fetching details from the little database plot.</div>
-    </div>
-
     <div class="board" id="message-board">
-      <header>
-        <span>Central message board</span>
-        <div class="actions">
-          <button id="toggle-board" type="button">Minimize</button>
-          <button id="refresh-board" type="button">Refresh</button>
-        </div>
-      </header>
+      <header>Central message board</header>
       <ul class="messages" id="messages">
         <li class="message">Loading messages...</li>
       </ul>
@@ -446,21 +374,6 @@
   </div>
 
   <script>
-    async function loadPlant() {
-      const nameEl = document.getElementById('plant-name');
-      const descEl = document.getElementById('plant-desc');
-      try {
-        const response = await fetch('/api/plant');
-        if (!response.ok) throw new Error('Request failed');
-        const data = await response.json();
-        nameEl.textContent = data.name || 'Unnamed plant';
-        descEl.textContent = data.description || 'No description available.';
-      } catch (err) {
-        nameEl.textContent = 'Field is quiet';
-        descEl.textContent = 'Could not read the plant record right now.';
-      }
-    }
-
     async function loadMessages() {
       const list = document.getElementById('messages');
       try {
@@ -503,18 +416,11 @@
 
     function setupBoardToggle() {
       const board = document.getElementById('message-board');
-      const toggleBtn = document.getElementById('toggle-board');
-      const refreshBtn = document.getElementById('refresh-board');
-
-      toggleBtn.addEventListener('click', () => {
-        const collapsed = board.classList.toggle('collapsed');
-        toggleBtn.textContent = collapsed ? 'Restore' : 'Minimize';
+      board.addEventListener('click', () => {
+        board.classList.toggle('collapsed');
       });
-
-      refreshBtn.addEventListener('click', loadMessages);
     }
 
-    loadPlant();
     loadMessages();
     setupBoardToggle();
   </script>
