@@ -112,6 +112,74 @@
     .cloud-2 { top: 10%; right: 18%; width: 140px; }
     .cloud-3 { top: 20%; left: 18%; width: 180px; opacity: 0.8; }
 
+    .windmill {
+      position: absolute;
+      right: 14%;
+      bottom: 28%;
+      width: 90px;
+      height: 200px;
+      pointer-events: none;
+    }
+
+    .windmill .tower {
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      width: 14px;
+      height: 160px;
+      transform: translateX(-50%);
+      background: linear-gradient(180deg, #c8d4cc 0%, #9db2a9 100%);
+      border-radius: 10px;
+      box-shadow: inset 0 -8px 10px rgba(0, 0, 0, 0.18);
+    }
+
+    .windmill .head {
+      position: absolute;
+      bottom: 150px;
+      left: 50%;
+      width: 28px;
+      height: 22px;
+      transform: translateX(-50%);
+      background: linear-gradient(180deg, #e8f0ed 0%, #cfdad4 100%);
+      border-radius: 10px 10px 10px 6px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.16);
+    }
+
+    .windmill .rotor {
+      position: absolute;
+      bottom: 160px;
+      left: 50%;
+      width: 14px;
+      height: 14px;
+      transform: translateX(-50%);
+      background: #6f8589;
+      border-radius: 50%;
+      box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.2);
+      animation: spin 12s linear infinite;
+    }
+
+    .windmill .blade {
+      position: absolute;
+      left: 50%;
+      bottom: 50%;
+      width: 10px;
+      height: 58px;
+      transform-origin: center bottom;
+      background: linear-gradient(180deg, #f4fbf8 0%, #cad7d1 100%);
+      border-radius: 8px;
+      box-shadow: inset 0 -4px 6px rgba(0, 0, 0, 0.14);
+    }
+
+    .windmill .blade-1 { transform: translate(-50%, 0) rotate(0deg); }
+    .windmill .blade-2 { transform: translate(-50%, 0) rotate(90deg); }
+    .windmill .blade-3 { transform: translate(-50%, 0) rotate(180deg); }
+    .windmill .blade-4 { transform: translate(-50%, 0) rotate(270deg); }
+
+    @keyframes spin {
+      from { transform: translateX(-50%) rotate(0deg); }
+      to { transform: translateX(-50%) rotate(360deg); }
+    }
+
     .hill {
       position: absolute;
       bottom: 28%;
@@ -348,6 +416,16 @@
     <div class="cloud cloud-3" aria-hidden="true"></div>
     <div class="hill hill-1" aria-hidden="true"></div>
     <div class="hill hill-2" aria-hidden="true"></div>
+    <div class="windmill" aria-hidden="true">
+      <div class="tower"></div>
+      <div class="head"></div>
+      <div class="rotor">
+        <span class="blade blade-1"></span>
+        <span class="blade blade-2"></span>
+        <span class="blade blade-3"></span>
+        <span class="blade blade-4"></span>
+      </div>
+    </div>
     <div class="field-texture" aria-hidden="true"></div>
 
     <div class="title-card">
