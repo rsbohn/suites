@@ -10,20 +10,20 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=EB+Garamond:wght@600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --sky-top: #e8f5ff;
-      --sky-mid: #c9def7;
-      --sky-low: #a2c8ec;
-      --field-top: #d5edb3;
-      --field-low: #bedb91;
-      --hill-1: #b3d28a;
-      --hill-2: #a4c57d;
-      --soil: #8e7355;
-      --stem: #2f5d2f;
-      --leaf: #4c8f49;
-      --leaf-dark: #3f7c3c;
-      --card: rgba(255, 255, 255, 0.92);
-      --text: #1f2a32;
-      --muted: #5c6e6d;
+      --sky-top: #0a1628;
+      --sky-mid: #1a2640;
+      --sky-low: #2a3858;
+      --field-top: #1e3a1e;
+      --field-low: #152b15;
+      --hill-1: #243d24;
+      --hill-2: #1a331a;
+      --soil: #3d2e1e;
+      --stem: #1f3d1f;
+      --leaf: #2d5a2d;
+      --leaf-dark: #1f4a1f;
+      --card: rgba(30, 40, 50, 0.92);
+      --text: #e8f0f8;
+      --muted: #a0b0c0;
     }
 
     * { box-sizing: border-box; }
@@ -32,9 +32,9 @@
       min-height: 100vh;
       font-family: "Space Grotesk", "EB Garamond", system-ui, sans-serif;
       background:
-        radial-gradient(circle at 22% 18%, rgba(174, 211, 255, 0.32), transparent 38%),
-        radial-gradient(circle at 78% 12%, rgba(188, 242, 191, 0.28), transparent 34%),
-        #dff1ff;
+        radial-gradient(circle at 22% 18%, rgba(40, 60, 90, 0.32), transparent 38%),
+        radial-gradient(circle at 78% 12%, rgba(30, 50, 70, 0.28), transparent 34%),
+        #0d1a2d;
       display: grid;
       place-items: center;
       color: var(--text);
@@ -75,25 +75,25 @@
       left: 10%;
       width: 120px;
       height: 120px;
-      background: radial-gradient(circle at 38% 40%, #fff 0 24%, #ffeeb6 24% 60%, #ffd46e 60% 100%);
+      background: radial-gradient(circle at 38% 40%, #d0d8e0 0 24%, #b0b8c8 24% 60%, #8090a8 60% 100%);
       border-radius: 50%;
-      box-shadow: 0 0 60px rgba(255, 212, 110, 0.5);
+      box-shadow: 0 0 60px rgba(160, 180, 210, 0.3);
     }
 
     .cloud {
       position: absolute;
       width: 160px;
       height: 70px;
-      background: #fff;
+      background: #3a4a5a;
       border-radius: 50px;
-      filter: drop-shadow(0 8px 20px rgba(76, 112, 136, 0.22));
-      opacity: 0.9;
+      filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.4));
+      opacity: 0.6;
     }
     .cloud::before,
     .cloud::after {
       content: "";
       position: absolute;
-      background: #fff;
+      background: #3a4a5a;
       border-radius: 50%;
     }
     .cloud::before {
@@ -113,34 +113,7 @@
     .cloud-3 { top: 20%; left: 18%; width: 180px; opacity: 0.8; }
 
     .bee {
-      position: absolute;
-      top: 24%;
-      left: 10%;
-      font-size: 34px;
-      filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.18));
-      pointer-events: none;
-      animation: bee-flight 18s ease-in-out infinite;
-      transform-origin: center;
-    }
-
-    .bee .bee-body {
-      display: inline-block;
-      animation: bee-wiggle 0.9s ease-in-out infinite;
-    }
-
-    @keyframes bee-flight {
-      0% { transform: translate3d(0, 0, 0) rotate(6deg); }
-      18% { transform: translate3d(16vw, -4vh, 0) rotate(-8deg); }
-      36% { transform: translate3d(30vw, 2vh, 0) rotate(5deg); }
-      52% { transform: translate3d(40vw, 10vh, 0) rotate(12deg); }
-      68% { transform: translate3d(26vw, 12vh, 0) rotate(-6deg); }
-      84% { transform: translate3d(12vw, 6vh, 0) rotate(8deg); }
-      100% { transform: translate3d(0, 0, 0) rotate(6deg); }
-    }
-
-    @keyframes bee-wiggle {
-      0%, 100% { transform: translateY(0) rotate(0deg); }
-      50% { transform: translateY(-4px) rotate(4deg); }
+      display: none;
     }
 
     .windmill {
@@ -159,9 +132,9 @@
       width: 14px;
       height: 160px;
       transform: translateX(-50%);
-      background: linear-gradient(180deg, #c8d4cc 0%, #9db2a9 100%);
+      background: transparent;
+      border: 2px solid #7a8a9a;
       border-radius: 10px;
-      box-shadow: inset 0 -8px 10px rgba(0, 0, 0, 0.18);
     }
 
     .windmill .head {
@@ -171,9 +144,9 @@
       width: 28px;
       height: 22px;
       transform: translateX(-50%);
-      background: linear-gradient(180deg, #e8f0ed 0%, #cfdad4 100%);
+      background: transparent;
+      border: 2px solid #7a8a9a;
       border-radius: 10px 10px 10px 6px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.16);
     }
 
     .windmill .rotor {
@@ -183,9 +156,9 @@
       width: 14px;
       height: 14px;
       transform: translateX(-50%);
-      background: #6f8589;
+      background: transparent;
+      border: 2px solid #7a8a9a;
       border-radius: 50%;
-      box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.2);
       animation: spin 12s linear infinite;
     }
 
@@ -196,9 +169,9 @@
       width: 10px;
       height: 58px;
       transform-origin: center bottom;
-      background: linear-gradient(180deg, #f4fbf8 0%, #cad7d1 100%);
+      background: transparent;
+      border: 2px solid #7a8a9a;
       border-radius: 8px;
-      box-shadow: inset 0 -4px 6px rgba(0, 0, 0, 0.14);
     }
 
     .windmill .blade-1 { transform: translate(-50%, 0) rotate(0deg); }
@@ -346,10 +319,10 @@
       top: 18px;
       left: 18px;
       padding: 12px 14px;
-      background: rgba(255, 255, 255, 0.9);
+      background: rgba(30, 40, 50, 0.9);
       border-radius: 12px;
-      box-shadow: 0 10px 22px rgba(22, 49, 68, 0.16);
-      border: 1px solid rgba(255, 255, 255, 0.8);
+      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(100, 120, 140, 0.3);
       max-width: 240px;
       font-weight: 700;
       letter-spacing: 0.01em;
@@ -367,10 +340,10 @@
       left: 18px;
       bottom: 18px;
       width: min(360px, 90vw);
-      background: rgba(255, 255, 255, 0.9);
+      background: rgba(30, 40, 50, 0.9);
       border-radius: 14px;
-      box-shadow: 0 14px 28px rgba(22, 49, 68, 0.16);
-      border: 1px solid rgba(255, 255, 255, 0.7);
+      box-shadow: 0 14px 28px rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(100, 120, 140, 0.3);
       overflow: hidden;
       transition: transform 0.2s ease, opacity 0.2s ease;
       cursor: pointer;
@@ -382,8 +355,8 @@
       font-weight: 700;
       letter-spacing: 0.01em;
       color: var(--text);
-      border-bottom: 1px solid rgba(0, 0, 0, 0.04);
-      background: rgba(255, 255, 255, 0.88);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(20, 30, 40, 0.88);
     }
 
     .messages {
@@ -406,7 +379,7 @@
 
     .message .author {
       font-weight: 700;
-      color: #2f5d2f;
+      color: #6fa06f;
     }
 
     .message .text {
@@ -447,9 +420,7 @@
     <div class="cloud cloud-3" aria-hidden="true"></div>
     <div class="hill hill-1" aria-hidden="true"></div>
     <div class="hill hill-2" aria-hidden="true"></div>
-    <div class="bee" aria-hidden="true">
-      <span class="bee-body">🐝</span>
-    </div>
+
     <div class="windmill" aria-hidden="true">
       <div class="tower"></div>
       <div class="head"></div>
