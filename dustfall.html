@@ -1,0 +1,1504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dustfall Colony</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
+
+  :root {
+    --bg: #0a0c0f;
+    --panel: #111418;
+    --border: #1e2530;
+    --accent: #e8a020;
+    --accent2: #20a0e8;
+    --danger: #e83020;
+    --success: #20e860;
+    --text: #c8d0d8;
+    --dim: #5a6270;
+    --glow: rgba(232,160,32,0.15);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 2px,
+      rgba(0,0,0,0.05) 2px, rgba(0,0,0,0.05) 4px
+    );
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  h1 {
+    font-family: 'Orbitron', monospace;
+    color: var(--accent);
+    letter-spacing: 0.2em;
+    text-shadow: 0 0 20px var(--accent), 0 0 40px rgba(232,160,32,0.3);
+  }
+
+  /* HEADER */
+  #header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 20px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, #0d1017 0%, var(--bg) 100%);
+    flex-shrink: 0;
+  }
+
+  #header h1 { font-size: 1.2rem; }
+
+  #day-display {
+    font-family: 'Orbitron', monospace;
+    color: var(--accent2);
+    font-size: 0.85rem;
+    text-align: right;
+  }
+
+  /* RESOURCE BAR */
+  #resources {
+    display: flex;
+    gap: 6px;
+    padding: 6px 20px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+    flex-shrink: 0;
+  }
+
+  .res {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 0.78rem;
+    background: rgba(255,255,255,0.02);
+    transition: border-color 0.3s;
+  }
+  .res.low { border-color: var(--danger); animation: pulse-danger 1s infinite; }
+  .res-icon { font-size: 1rem; }
+  .res-label { color: var(--dim); }
+  .res-val { color: var(--accent); font-weight: bold; }
+
+  @keyframes pulse-danger {
+    0%,100% { box-shadow: none; }
+    50% { box-shadow: 0 0 8px var(--danger); }
+  }
+
+  /* MAIN LAYOUT */
+  #main {
+    display: grid;
+    grid-template-columns: 1fr 260px;
+    gap: 0;
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* MAP */
+  #map-area {
+    padding: 12px;
+    overflow: hidden;
+    position: relative;
+    min-height: 0;
+  }
+
+  #map {
+    display: grid;
+    grid-template-columns: repeat(16, 1fr);
+    grid-template-rows: repeat(10, 1fr);
+    gap: 2px;
+    height: 100%;
+    width: 100%;
+  }
+
+  .tile {
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.2s;
+    position: relative;
+    border: 1px solid transparent;
+    user-select: none;
+  }
+  .tile:hover { transform: scale(1.15); z-index: 10; }
+  .tile.grass { background: #141f10; border-color: #1a2a14; }
+  .tile.dirt  { background: #1a1510; border-color: #241e14; }
+  .tile.rock  { background: #151520; border-color: #1e1e2a; }
+  .tile.water { background: #0a1520; border-color: #0f2030; animation: water-shimmer 3s infinite; }
+  .tile.tree  { background: #0e1c0e; border-color: #142014; }
+  .tile.selected { border-color: var(--accent) !important; box-shadow: 0 0 8px var(--accent); }
+  .tile.buildable { border-color: var(--success); }
+
+  @keyframes water-shimmer {
+    0%,100% { background: #0a1520; }
+    50% { background: #0c1a28; }
+  }
+
+  /* COLONIST on tile */
+  .tile .colonist-dot {
+    position: absolute;
+    width: 6px; height: 6px;
+    background: var(--accent2);
+    border-radius: 50%;
+    bottom: 2px; right: 2px;
+    box-shadow: 0 0 4px var(--accent2);
+    animation: colonist-bob 1.5s infinite ease-in-out;
+  }
+  @keyframes colonist-bob {
+    0%,100% { transform: translateY(0); }
+    50% { transform: translateY(-2px); }
+  }
+
+  /* SIDEBAR ACCORDION */
+  #sidebar {
+    border-left: 1px solid var(--border);
+    background: var(--panel);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    height: 100%;
+  }
+
+  .accord-section {
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    flex-shrink: 0;
+  }
+
+  .accord-section.open {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .accord-header {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    color: var(--dim);
+    text-transform: uppercase;
+    padding: 10px 12px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+    flex-shrink: 0;
+    transition: color 0.2s, background 0.2s;
+  }
+  .accord-header:hover { color: var(--accent); background: var(--glow); }
+  .accord-section.open .accord-header { color: var(--text); }
+
+  .accord-arrow {
+    font-size: 0.8rem;
+    transition: transform 0.25s;
+    color: var(--dim);
+  }
+  .accord-section.open .accord-arrow { transform: rotate(0deg); }
+  .accord-section:not(.open) .accord-arrow { transform: rotate(-90deg); }
+
+  .accord-body {
+    padding: 8px 12px 10px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+    display: none;
+  }
+  .accord-section.open .accord-body {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .panel-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    color: var(--dim);
+    margin-bottom: 10px;
+    text-transform: uppercase;
+  }
+
+  /* COLONISTS */
+  .colonist-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .colonist-card:hover, .colonist-card.selected { border-color: var(--accent2); }
+  .col-name {
+    font-size: 0.82rem;
+    color: var(--accent2);
+    margin-bottom: 4px;
+  }
+  .col-task {
+    font-size: 0.7rem;
+    color: var(--dim);
+    margin-bottom: 6px;
+  }
+  .col-stats { display: flex; gap: 6px; flex-wrap: wrap; }
+  .stat-bar-wrap { flex: 1; min-width: 60px; }
+  .stat-label { font-size: 0.6rem; color: var(--dim); }
+  .stat-bar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 2px;
+  }
+  .stat-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.5s;
+  }
+  .stat-fill.health { background: var(--success); }
+  .stat-fill.hunger { background: var(--accent); }
+  .stat-fill.mood   { background: var(--accent2); }
+
+  /* EVENTS LOG */
+  #log {
+    overflow-y: auto;
+    padding: 6px 12px;
+    font-size: 0.72rem;
+    line-height: 1.7;
+    flex: 1;
+  }
+  .log-entry {
+    padding: 3px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    opacity: 0;
+    animation: fadeIn 0.4s forwards;
+  }
+  .log-entry.info   { color: var(--text); }
+  .log-entry.good   { color: var(--success); }
+  .log-entry.warn   { color: var(--accent); }
+  .log-entry.danger { color: var(--danger); }
+  @keyframes fadeIn { to { opacity: 1; } }
+
+  /* ACTIONS */
+  #actions {
+    padding: 8px 20px;
+    border-top: 1px solid var(--border);
+    background: var(--panel);
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  #actions .panel-title {
+    white-space: nowrap;
+    margin-bottom: 0;
+    margin-right: 4px;
+  }
+
+  #actions .btn {
+    flex: 1;
+    text-align: center;
+  }
+
+  #actions .btn .cost {
+    display: block;
+    float: none;
+    font-size: 0.62rem;
+    color: var(--dim);
+    margin-top: 2px;
+  }
+
+  .btn {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.04);
+    color: var(--text);
+    cursor: pointer;
+    border-radius: 3px;
+    text-align: left;
+    transition: all 0.2s;
+    letter-spacing: 0.05em;
+  }
+  .btn:hover:not(:disabled) {
+    background: var(--glow);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn .cost { float: right; color: var(--dim); font-size: 0.68rem; }
+
+  /* EVENT POPUP */
+  #event-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 500;
+    align-items: center;
+    justify-content: center;
+  }
+  #event-modal.show { display: flex; }
+
+  #event-box {
+    background: var(--panel);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    padding: 24px;
+    max-width: 380px;
+    width: 90%;
+    box-shadow: 0 0 40px rgba(232,160,32,0.2);
+    animation: slideUp 0.3s ease;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to   { transform: translateY(0); opacity: 1; }
+  }
+
+  #event-box h2 {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.9rem;
+    color: var(--accent);
+    margin-bottom: 10px;
+    letter-spacing: 0.1em;
+  }
+  #event-desc {
+    font-size: 0.8rem;
+    line-height: 1.7;
+    color: var(--text);
+    margin-bottom: 16px;
+  }
+  #event-choices { display: flex; flex-direction: column; gap: 8px; }
+  .choice-btn {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.78rem;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.04);
+    color: var(--text);
+    cursor: pointer;
+    border-radius: 4px;
+    text-align: left;
+    transition: all 0.2s;
+  }
+  .choice-btn:hover {
+    border-color: var(--accent2);
+    color: var(--accent2);
+    background: rgba(32,160,232,0.08);
+  }
+
+  /* GAME OVER */
+  #game-over {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.9);
+    z-index: 600;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    text-align: center;
+  }
+  #game-over.show { display: flex; }
+  #game-over h2 {
+    font-family: 'Orbitron', monospace;
+    font-size: 2rem;
+    color: var(--danger);
+    text-shadow: 0 0 30px var(--danger);
+    margin-bottom: 16px;
+    animation: flicker 2s infinite;
+  }
+  @keyframes flicker {
+    0%,100%,94%,96% { opacity: 1; }
+    95% { opacity: 0.4; }
+  }
+  #game-over p { color: var(--text); margin-bottom: 24px; font-size: 0.9rem; }
+
+  /* speed controls */
+  #speed-controls { display: flex; gap: 4px; align-items: center; }
+  .speed-btn {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.6rem;
+    padding: 3px 7px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--dim);
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.2s;
+  }
+  .speed-btn.active { border-color: var(--accent); color: var(--accent); }
+
+  /* ACHIEVEMENT TOAST */
+  #achievement-toast {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%) translateY(30px);
+    background: linear-gradient(135deg, #1a1600, #2a2000);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    padding: 14px 22px;
+    box-shadow: 0 0 30px rgba(232,160,32,0.4);
+    z-index: 700;
+    text-align: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s, transform 0.4s;
+    min-width: 280px;
+  }
+  #achievement-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  #achievement-toast .ach-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.75rem;
+    color: var(--accent);
+    letter-spacing: 0.12em;
+    margin-bottom: 5px;
+  }
+  #achievement-toast .ach-label {
+    font-size: 0.65rem;
+    color: var(--dim);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  #achievement-toast .ach-desc {
+    font-size: 0.72rem;
+    color: var(--text);
+    line-height: 1.5;
+  }
+  .artifact-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 7px 9px;
+    margin-bottom: 6px;
+    font-size: 0.72rem;
+    line-height: 1.5;
+  }
+  .artifact-name { color: var(--accent); margin-bottom: 2px; }
+  .artifact-effect { color: var(--dim); font-size: 0.66rem; }
+
+  /* CHYRON */
+  #chyron {
+    display: flex;
+    align-items: stretch;
+    height: 44px;
+    background: #0a0e12;
+    border-top: 1px solid var(--border);
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  #chyron-label {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.55rem;
+    color: var(--bg);
+    background: var(--accent);
+    padding: 0 8px;
+    display: flex;
+    align-items: center;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  #chyron-rows {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .chyron-track {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .chyron-track:last-child { border-bottom: none; }
+  .chyron-text {
+    position: absolute;
+    white-space: nowrap;
+    font-size: 0.7rem;
+    color: var(--text);
+    top: 50%;
+    transform: translateY(-50%);
+    left: 100%;
+    letter-spacing: 0.04em;
+  }
+
+  .tile.planting-active { animation: planting-pulse 0.8s infinite ease-in-out; }
+  @keyframes planting-pulse {
+    0%,100% { opacity: 1; }
+    50%      { opacity: 0.45; }
+  }
+
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <h1>⬡ DUSTFALL</h1>
+  <div id="speed-controls">
+    <span style="font-size:0.65rem;color:var(--dim);margin-right:4px;">SPEED</span>
+    <button class="speed-btn active" onclick="setSpeed(1)" id="s1">▶ 1×</button>
+    <button class="speed-btn" onclick="setSpeed(2)" id="s2">▶▶ 2×</button>
+    <button class="speed-btn" onclick="setSpeed(0)" id="s0">⏸</button>
+  </div>
+  <div id="day-display">
+    <div id="day-label">DAY 1</div>
+    <div id="season-label" style="font-size:0.7rem;color:var(--dim)">SPRING</div>
+  </div>
+</div>
+
+<div id="resources">
+  <div class="res" id="r-food">  <span class="res-icon">🍖</span><span class="res-label">FOOD</span><span class="res-val" id="v-food">40</span></div>
+  <div class="res" id="r-wood">  <span class="res-icon">🪵</span><span class="res-label">WOOD</span><span class="res-val" id="v-wood">30</span></div>
+  <div class="res" id="r-stone"> <span class="res-icon">🪨</span><span class="res-label">STONE</span><span class="res-val" id="v-stone">20</span></div>
+  <div class="res" id="r-metal"> <span class="res-icon">⚙️</span><span class="res-label">METAL</span><span class="res-val" id="v-metal">10</span></div>
+  <div class="res" id="r-meds">  <span class="res-icon">💊</span><span class="res-label">MEDS</span><span class="res-val" id="v-meds">5</span></div>
+</div>
+
+<div id="main">
+  <div id="map-area">
+    <div id="map"></div>
+  </div>
+  <div id="sidebar">
+    <div class="accord-section open" id="acc-colonists">
+      <div class="accord-header" onclick="toggleAccord('acc-colonists')">
+        <span>⬡ Colonists</span><span class="accord-arrow">▾</span>
+      </div>
+      <div class="accord-body">
+        <div id="colonist-list"></div>
+      </div>
+    </div>
+    <div class="accord-section" id="acc-artifacts">
+      <div class="accord-header" onclick="toggleAccord('acc-artifacts')">
+        <span>⬡ Artifacts</span><span class="accord-arrow">▾</span>
+      </div>
+      <div class="accord-body">
+        <div id="artifact-list"><span style="color:var(--dim);font-size:0.72rem">No artifacts yet.</span></div>
+      </div>
+    </div>
+    <div class="accord-section" id="acc-log">
+      <div class="accord-header" onclick="toggleAccord('acc-log')">
+        <span>⬡ Event Log</span><span class="accord-arrow">▾</span>
+      </div>
+      <div class="accord-body" style="padding:0">
+        <div id="log"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="actions">
+  <div class="panel-title">⬡ ORDERS</div>
+  <button class="btn" id="btn-hunt" onclick="doAction('hunt')">🏹 Hunt for Food <span class="cost">1 colonist · 4hrs</span></button>
+  <button class="btn" id="btn-chop" onclick="doAction('chop')">🪓 Chop Trees <span class="cost">1 colonist · 3hrs</span></button>
+  <button class="btn" id="btn-mine" onclick="doAction('mine')">⛏ Mine Stone <span class="cost">1 colonist · 4hrs</span></button>
+  <button class="btn" id="btn-build" onclick="doAction('build')">🏗 Build Shelter <span class="cost">10🪵 5🪨</span></button>
+  <button class="btn" id="btn-trade" onclick="doAction('trade')">🤝 Trade Caravan <span class="cost">10🍖 → random</span></button>
+  <button class="btn" id="btn-scout" onclick="doAction('scout')">🔭 Scout Area <span class="cost">1 colonist</span></button>
+</div>
+
+<div id="chyron">
+  <span id="chyron-label">⬡ COLONY NEWS</span>
+  <div id="chyron-rows">
+    <div class="chyron-track"><span class="chyron-text" id="chyron-text-0"></span></div>
+    <div class="chyron-track"><span class="chyron-text" id="chyron-text-1"></span></div>
+  </div>
+</div>
+
+<!-- Achievement Toast -->
+<div id="achievement-toast">
+  <div class="ach-label">⬡ Achievement Unlocked</div>
+  <div class="ach-title" id="ach-title"></div>
+  <div class="ach-desc" id="ach-desc"></div>
+</div>
+
+<!-- Event Modal -->
+<div id="event-modal">
+  <div id="event-box">
+    <h2 id="event-title"></h2>
+    <p id="event-desc"></p>
+    <div id="event-choices"></div>
+  </div>
+</div>
+
+<!-- Game Over -->
+<div id="game-over">
+  <h2>⚠ COLONY LOST</h2>
+  <p id="go-reason">Your colony has perished.</p>
+  <p style="color:var(--dim);font-size:0.8rem" id="go-days"></p>
+  <button class="btn" style="margin-top:16px;border-color:var(--accent);color:var(--accent)" onclick="initGame()">▶ NEW COLONY</button>
+</div>
+
+<script>
+// ===== GAME STATE =====
+let state = {};
+let tickInterval = null;
+let currentSpeed = 1;
+let pendingEvent = null;
+
+const SEASONS = ['SPRING','SUMMER','AUTUMN','WINTER'];
+const COLONIST_NAMES = ['Mara','Dex','Kira','Tomas','Yael','Cass','Finn','Ryn','Solis','Brin'];
+const SKILLS = ['Mining','Hunting','Building','Medicine','Cooking'];
+
+const TILE_TYPES = [
+  {type:'grass', weight:35, emoji:''},
+  {type:'dirt',  weight:25, emoji:''},
+  {type:'tree',  weight:20, emoji:'🌲'},
+  {type:'rock',  weight:10, emoji:'🪨'},
+  {type:'water', weight:10, emoji:'💧'},
+];
+
+function weightedRandom(items) {
+  const total = items.reduce((s,i) => s + i.weight, 0);
+  let r = Math.random() * total;
+  for (const item of items) { r -= item.weight; if (r <= 0) return item; }
+  return items[items.length-1];
+}
+
+// ===== RANDOM EVENTS =====
+const EVENTS = [
+  {
+    id:'raiders', title:'⚔ RAIDERS SPOTTED',
+    desc:'A band of raiders is approaching your colony! They want supplies. How do you respond?',
+    season: null,
+    choices: [
+      { text:'💰 Pay them off (lose 15🍖, 5🪵)', effect: s => { s.res.food-=15; s.res.wood-=5; log('Paid off the raiders. They leave grumbling.','warn'); } },
+      { text:'🗡 Fight them (50% chance — may lose colonist)', effect: s => {
+        if(Math.random()<0.5){ log('You fought off the raiders! Victory!','good'); }
+        else { injureRandomColonist(s); log('The fight was costly. A colonist was injured.','danger'); }
+      }},
+      { text:'🏃 Flee into the wilds (lose 8🍖)', effect: s => { s.res.food-=8; log('You fled and regrouped safely.','info'); } },
+    ]
+  },
+  {
+    id:'trader', title:'🤝 WANDERING TRADER',
+    desc:'A lone trader arrives with exotic goods.',
+    choices: [
+      { text:'Buy medicine (10🍖 → 8💊)', effect: s => { if(s.res.food>=10){s.res.food-=10;s.res.meds+=8;log('Bought medicine from trader.','good');}else{log('Not enough food!','warn');} } },
+      { text:'Buy metal (15🍖 → 12⚙)', effect: s => { if(s.res.food>=15){s.res.food-=15;s.res.metal+=12;log('Bought metal from trader.','good');}else{log('Not enough food!','warn');} } },
+      { text:'Send them away', effect: s => { log('You sent the trader away.','info'); } },
+    ]
+  },
+  {
+    id:'plague', title:'🦠 SICKNESS SPREADING',
+    desc:'A colonist has fallen ill. Without treatment, it may spread.',
+    choices: [
+      { text:'Use medicine (3💊)', effect: s => { if(s.res.meds>=3){s.res.meds-=3;healRandomColonist(s);log('Medicine worked. Colonist recovering.','good');}else{injureRandomColonist(s);log('No meds — the illness spread!','danger');} } },
+      { text:'Quarantine and wait', effect: s => { if(Math.random()<0.5){log('The illness passed on its own.','good');}else{injureRandomColonist(s);log('The quarantine failed. Colonist worsened.','danger');} } },
+    ]
+  },
+  {
+    id:'fire', title:'🔥 FIRE!',
+    desc:'A fire has broken out! Act fast.',
+    choices: [
+      { text:'Fight the fire (lose 8🪵)', effect: s => { s.res.wood=Math.max(0,s.res.wood-8); log('Fire extinguished. Lost some wood.','warn'); } },
+      { text:'Let it burn, save colonists', effect: s => { s.res.wood=Math.max(0,s.res.wood-20); s.res.stone=Math.max(0,s.res.stone-10); log('The fire gutted your stockpile!','danger'); } },
+    ]
+  },
+  {
+    id:'newcomer', title:'👤 STRANGER AT THE GATE',
+    desc: function() {
+      const name = COLONIST_NAMES[Math.floor(Math.random() * COLONIST_NAMES.length)];
+      const looks = ['capable','strong','weak','sickly'];
+      const look = looks[Math.floor(Math.random() * looks.length)];
+      return { text: name + ' has appeared at your gate. They look ' + look + '.', name: name, look: look };
+    },
+    choices: [
+      { text:'Welcome them in', effect: function(s, ctx) {
+        if(s.colonists.length < 8) {
+          const c = makeColonist();
+          c.name = ctx.name;
+          if(ctx.look === 'weak' || ctx.look === 'sickly') c.health = 40 + Math.floor(Math.random()*20);
+          if(ctx.look === 'strong') c.health = 95;
+          s.colonists.push(c);
+          log(ctx.name + ' joined the colony.', 'good');
+        } else {
+          log('Colony is at capacity.', 'warn');
+        }
+      }},
+      { text:'Turn them away', effect: function(s, ctx) { log('You turned ' + ctx.name + ' away.', 'info'); } },
+    ]
+  },
+  {
+    id:'harvest', title:'🌾 BOUNTIFUL HARVEST',
+    desc:'Your foragers found a rich food source!',
+    choices: [
+      { text:'Collect it all (+20🍖)', effect: s => { s.res.food+=20; log('Collected a bountiful harvest!','good'); } },
+      { text:'Leave some for later', effect: s => { s.res.food+=10; log('Collected a moderate harvest.','info'); } },
+    ]
+  },
+  {
+    id:'storm', title:'⛈ STORM WARNING',
+    desc:'A violent storm is approaching. Prepare your colony!',
+    choices: [
+      { text:'Reinforce shelters (5🪵)', effect: s => { if(s.res.wood>=5){s.res.wood-=5;s.shelters=Math.min(5,s.shelters+1);log('Shelters reinforced. Storm passed safely.','good');}else{injureRandomColonist(s);log('No wood to reinforce — colonists exposed!','danger');} } },
+      { text:'Ride it out', effect: s => { if(Math.random()<0.4){log('The storm missed you. Lucky!','good');}else{s.res.food-=10;log('Storm damaged food stores.','warn');} } },
+    ]
+  },
+];
+
+// ===== MONUMENTS =====
+const MONUMENT_NAMES = [
+  'the Dust Obelisk','a Sleeping Giant','the Warden Throne',
+  'the Hollow Eye','a Cracked Altar','the Founder\'s Bust',
+  'the Silent Monolith','an Ancient Totem','the Cradle Stone'
+];
+
+function onRockClick(tileIdx) {
+  if (pendingEvent) return;
+  const tile = state.tiles[tileIdx];
+  if (tile.monument) { log(`This rock already holds ${tile.monument}. It stands proud.`, 'info'); return; }
+
+  const col = getIdleColonist();
+  if (!col) { log('No idle colonist available to sculpt!', 'warn'); return; }
+
+  const name = MONUMENT_NAMES[Math.floor(Math.random() * MONUMENT_NAMES.length)];
+  col.task = '🗿 Sculpting';
+  col.busy = 3;
+  tile.monument = '(in progress)';
+
+  log(`${col.name} begins carving ${name} from the rock face...`, 'info');
+  renderAll();
+
+  // 3 days = 3 tick intervals. We track via day count.
+  const startDay = state.day;
+  const checkDone = setInterval(() => {
+    if (state.day >= startDay + 3) {
+      clearInterval(checkDone);
+      col.task = 'Idle';
+      col.busy = 0;
+      col.mood = Math.min(100, col.mood + 20);
+      tile.monument = name;
+      tile.emoji = '🗿';
+      // Update hover title on the tile element
+      const tileEl = document.querySelectorAll('.tile')[tileIdx];
+      if (tileEl) tileEl.title = `🗿 ${name.replace(/^(a|the) /i, m => m[0].toUpperCase() + m.slice(1))} — sculpted by ${col.name}`;
+      // Mood boost to all colonists
+      state.colonists.forEach(c => { c.mood = Math.min(100, c.mood + 8); });
+      log(`✨ ${col.name} has finished sculpting ${name}! Colony morale rises.`, 'good');
+      renderAll();
+
+      // Show completion popup
+      pendingEvent = true;
+      document.getElementById('event-title').textContent = `🗿 Monument Complete`;
+      document.getElementById('event-desc').textContent = `${col.name} has finished carving "${name.replace(/^(a|the) /i, m => m[0].toUpperCase() + m.slice(1))}" from the rock face. The colony gathers to admire the work. Morale has risen.`;
+      const choicesEl = document.getElementById('event-choices');
+      choicesEl.innerHTML = '';
+      const btn = document.createElement('button');
+      btn.className = 'choice-btn';
+      btn.textContent = '✨ Admire the work';
+      btn.onclick = () => { pendingEvent = null; document.getElementById('event-modal').classList.remove('show'); };
+      choicesEl.appendChild(btn);
+      document.getElementById('event-modal').classList.add('show');
+
+      // Check achievement: all rock tiles are monuments
+      const anyUncarved = state.tiles.some(t => t.type === 'rock' && !t.monument);
+      if (!anyUncarved && !state.achievements.allMonuments) {
+        state.achievements.allMonuments = true;
+        setTimeout(() => showAchievement('🏆 All Stone Speaks', 'Every rock square has been sculpted into a monument. Your colony will be remembered.'), 600);
+      }
+    }
+  }, 500);
+}
+
+function onDirtClick(tileIdx) {
+  if (pendingEvent) return;
+  const tile = state.tiles[tileIdx];
+  if (tile.crop) {
+    const daysLeft = 20 - (state.day - tile.crop.plantedDay);
+    log(`This field was planted by ${tile.crop.planter}. ${Math.max(0,daysLeft)} days until harvest.`, 'info');
+    return;
+  }
+  const col = getIdleColonist();
+  if (!col) { log('No idle colonist available to plant!', 'warn'); return; }
+
+  col.busy = 3; col.task = '🌱 Planting';
+  tile.planting = true;
+  log(`${col.name} is planting crops...`, 'info');
+  renderAll();
+
+  setTimeout(() => {
+    col.busy = 0; col.task = 'Idle';
+    tile.planting = false;
+    tile.crop = { plantedDay: state.day, planter: col.name };
+    col.mood = Math.min(100, col.mood + 5);
+    log(`${col.name} finished planting. Harvest in 20 days.`, 'good');
+    renderAll();
+  }, 3000 / currentSpeed);
+}
+
+function onGrassClick(tileIdx) {
+  if (pendingEvent) return;
+  const tile = state.tiles[tileIdx];
+  if (tile.sapling) {
+    const daysLeft = 15 - (state.day - tile.sapling.plantedDay);
+    log(`A sapling planted by ${tile.sapling.planter}. Grows into a tree in ${Math.max(0,daysLeft)} days.`, 'info');
+    return;
+  }
+  const col = getIdleColonist();
+  if (!col) { log('No idle colonist available to plant!', 'warn'); return; }
+
+  col.busy = 3; col.task = '🌱 Planting';
+  tile.planting = true;
+  log(`${col.name} is planting a sapling...`, 'info');
+  renderAll();
+
+  setTimeout(() => {
+    col.busy = 0; col.task = 'Idle';
+    tile.planting = false;
+    tile.sapling = { plantedDay: state.day, planter: col.name };
+    log(`${col.name} planted a sapling. It will grow into a tree in 15 days.`, 'good');
+    renderAll();
+  }, 3000 / currentSpeed);
+}
+
+function buildMap() {
+  const map = document.getElementById('map');
+  map.innerHTML = '';
+  state.tiles = [];
+  for (let i = 0; i < 16*10; i++) {
+    const ttype = weightedRandom(TILE_TYPES);
+    const tile = { type: ttype.type, emoji: ttype.emoji, colonist: null };
+    state.tiles.push(tile);
+    const el = document.createElement('div');
+    el.className = 'tile ' + tile.type;
+    el.textContent = tile.emoji;
+    el.title = tile.type.toUpperCase();
+    map.appendChild(el);
+  }
+}
+
+function renderMap() {
+  const els = document.querySelectorAll('.tile');
+  state.tiles.forEach((tile, i) => {
+    // Update class
+    els[i].className = 'tile ' + tile.type;
+    // Remove old dot
+    const old = els[i].querySelector('.colonist-dot');
+    if(old) old.remove();
+
+    // Determine emoji/text and title
+    if (tile.crop) {
+      const pct = (state.day - tile.crop.plantedDay) / 20;
+      if (pct < 0.4)      els[i].textContent = '🌱';
+      else if (pct < 0.8) els[i].textContent = '🌿';
+      else                els[i].textContent = '🌾';
+      els[i].title = 'CROPS — planted by ' + tile.crop.planter + ', ' + Math.max(0, 20-(state.day-tile.crop.plantedDay)) + ' days left';
+    } else if (tile.sapling) {
+      const pct = (state.day - tile.sapling.plantedDay) / 15;
+      if (pct < 0.5) els[i].textContent = '🪴';
+      else           els[i].textContent = '🌳';
+      els[i].title = 'SAPLING — planted by ' + tile.sapling.planter + ', ' + Math.max(0, 15-(state.day-tile.sapling.plantedDay)) + ' days to tree';
+    } else if (tile.planting) {
+      els[i].textContent = '🫴';
+      els[i].title = 'Being planted...';
+      els[i].classList.add('planting-active');
+    } else {
+      els[i].classList.remove('planting-active');
+      // In-progress monument
+      if (tile.monument === '(in progress)') {
+        els[i].textContent = '🪨';
+        els[i].classList.add('planting-active');
+        els[i].title = 'Being sculpted...';
+      } else {
+        els[i].textContent = tile.emoji || '';
+        // Tile-type hover hints
+        if (tile.type === 'dirt')  els[i].title = 'DIRT — Click to plant crops';
+        else if (tile.type === 'grass') els[i].title = 'GRASS — Click to plant a sapling';
+        else if (tile.type === 'tree')  els[i].title = 'TREE';
+        else if (tile.type === 'rock' && !tile.monument) els[i].title = 'ROCK — Click to sculpt a monument';
+        else if (tile.monument) els[i].title = '🗿 ' + tile.monument;
+        else els[i].title = tile.type.toUpperCase();
+      }
+    }
+
+    // Re-bind clicks based on current tile type
+    els[i].onclick = null;
+    if (tile.type === 'rock' && !tile.monument) els[i].onclick = () => onRockClick(i);
+    else if (tile.type === 'dirt' && !tile.crop && !tile.planting) els[i].onclick = () => onDirtClick(i);
+    else if (tile.type === 'grass' && !tile.sapling && !tile.planting) els[i].onclick = () => onGrassClick(i);
+  });
+
+  // Place colonists on tiles
+  state.colonists.forEach((col, ci) => {
+    const tidx = (col.tileIdx !== undefined) ? col.tileIdx : ci * 3;
+    const el = els[Math.min(tidx, els.length-1)];
+    const dot = document.createElement('div');
+    dot.className = 'colonist-dot';
+    dot.title = col.name;
+    el.appendChild(dot);
+  });
+}
+
+// ===== COLONISTS =====
+function makeColonist() {
+  const usedNames = state.colonists.map(c=>c.name);
+  const available = COLONIST_NAMES.filter(n=>!usedNames.includes(n));
+  const name = available.length ? available[Math.floor(Math.random()*available.length)] : 'Settler';
+  const skill = SKILLS[Math.floor(Math.random()*SKILLS.length)];
+  return {
+    name, skill,
+    health: 85 + Math.floor(Math.random()*15),
+    hunger: 80 + Math.floor(Math.random()*20),
+    mood: 60 + Math.floor(Math.random()*30),
+    task: 'Idle',
+    busy: 0,
+    tileIdx: Math.floor(Math.random()*160)
+  };
+}
+
+function addColonist(s) {
+  if(s.colonists.length < 8) s.colonists.push(makeColonist());
+}
+
+function injureRandomColonist(s) {
+  const alive = s.colonists.filter(c=>c.health>0);
+  if(!alive.length) return;
+  const col = alive[Math.floor(Math.random()*alive.length)];
+  col.health = Math.max(0, col.health - 25 - Math.floor(Math.random()*20));
+  col.mood = Math.max(0, col.mood - 15);
+  if(col.health <= 0) {
+    log(`💀 ${col.name} has died!`, 'danger');
+    s.colonists = s.colonists.filter(c=>c.name!==col.name);
+  }
+}
+
+function healRandomColonist(s) {
+  const injured = s.colonists.filter(c=>c.health<80);
+  if(!injured.length) return;
+  const col = injured[Math.floor(Math.random()*injured.length)];
+  col.health = Math.min(100, col.health + 30);
+  col.mood = Math.min(100, col.mood + 10);
+}
+
+// ===== RENDER UI =====
+function renderColonists() {
+  const list = document.getElementById('colonist-list');
+  list.innerHTML = '';
+  document.querySelector('#acc-colonists .accord-header span:first-child').textContent = `⬡ Colonists (${state.colonists.length})`;
+  state.colonists.forEach(col => {
+    const card = document.createElement('div');
+    card.className = 'colonist-card';
+    card.innerHTML = `
+      <div class="col-name">${col.name} <span style="font-size:0.65rem;color:var(--dim)">[${col.skill}]</span></div>
+      <div class="col-task">${col.task}</div>
+      <div class="col-stats">
+        <div class="stat-bar-wrap">
+          <div class="stat-label">HP ${col.health}%</div>
+          <div class="stat-bar"><div class="stat-fill health" style="width:${col.health}%"></div></div>
+        </div>
+        <div class="stat-bar-wrap">
+          <div class="stat-label">🍖 ${col.hunger}%</div>
+          <div class="stat-bar"><div class="stat-fill hunger" style="width:${col.hunger}%"></div></div>
+        </div>
+        <div class="stat-bar-wrap">
+          <div class="stat-label">😊 ${col.mood}%</div>
+          <div class="stat-bar"><div class="stat-fill mood" style="width:${col.mood}%"></div></div>
+        </div>
+      </div>`;
+    list.appendChild(card);
+  });
+}
+
+function renderResources() {
+  const r = state.res;
+  const fields = {food:'v-food',wood:'v-wood',stone:'v-stone',metal:'v-metal',meds:'v-meds'};
+  const lowKeys = {food:'r-food',wood:'r-wood',stone:'r-stone',metal:'r-metal',meds:'r-meds'};
+  const LOW = {food:10,wood:8,stone:8,metal:4,meds:2};
+  for(const key in fields) {
+    document.getElementById(fields[key]).textContent = r[key];
+    const el = document.getElementById(lowKeys[key]);
+    el.classList.toggle('low', r[key] <= LOW[key]);
+  }
+}
+
+function renderDay() {
+  const dayInSeason = ((state.day-1) % 20) + 1;
+  const seasonIdx = Math.floor((state.day-1) / 20) % 4;
+  document.getElementById('day-label').textContent = `DAY ${state.day}`;
+  document.getElementById('season-label').textContent = SEASONS[seasonIdx] + ` · ${dayInSeason}/20`;
+}
+
+// ===== LOGGING =====
+function log(msg, type='info') {
+  const logEl = document.getElementById('log');
+  const entry = document.createElement('div');
+  entry.className = 'log-entry ' + type;
+  const d = `Day ${state.day}`;
+  entry.textContent = `[${d}] ${msg}`;
+  logEl.insertBefore(entry, logEl.firstChild);
+  if(logEl.children.length > 60) logEl.removeChild(logEl.lastChild);
+  // Send notable events to chyron
+  if (type === 'good' || type === 'danger' || type === 'warn') {
+    queueChyron(msg, type === 'danger' || type === 'warn' ? 1 : 0);
+  }
+}
+
+// ===== ARTIFACTS =====
+const ARTIFACTS = [
+  { name: 'a Cracked Compass', desc: 'Its needle still spins toward something unknown. Scouts feel drawn by it.', effect: s => { s.colonists.forEach(c => c.mood = Math.min(100, c.mood + 12)); }, effectDesc: '+12 mood to all colonists' },
+  { name: 'an Ancient Coin', desc: 'Stamped with a face nobody recognises. It feels heavier than it should.', effect: s => { s.res.metal += 8; }, effectDesc: '+8 metal (melted down)' },
+  { name: 'a Sealed Canister', desc: 'Whatever is inside still sloshes. Could be medicine, could be worse.', effect: s => { s.res.meds += 6; }, effectDesc: '+6 medicine' },
+  { name: 'a Tattered Map', desc: 'It shows landmarks that no longer exist — except one, circled in red.', effect: s => { s.res.food += 20; }, effectDesc: '+20 food (followed the map)' },
+  { name: 'a Bone Flute', desc: 'Someone plays it that evening. The melody is haunting but beautiful.', effect: s => { s.colonists.forEach(c => c.mood = Math.min(100, c.mood + 18)); }, effectDesc: '+18 mood to all colonists' },
+  { name: 'a Pre-War Toolkit', desc: 'Rusted but complete. The colonists immediately put it to use.', effect: s => { s.res.wood += 10; s.res.stone += 8; }, effectDesc: '+10 wood, +8 stone' },
+  { name: 'a Glass Eye', desc: 'Perfectly preserved, eerily lifelike. Nobody wants to touch it, but nobody throws it away.', effect: s => { s.colonists.forEach(c => c.mood = Math.max(0, c.mood - 5)); s.res.metal += 15; }, effectDesc: '-5 mood (unsettling), +15 metal' },
+  { name: 'a Child\'s Locket', desc: 'A tiny portrait inside. The colonists sit quietly for a while.', effect: s => { s.colonists.forEach(c => { c.mood = Math.min(100, c.mood + 8); c.health = Math.min(100, c.health + 5); }); }, effectDesc: '+8 mood, +5 health to all' },
+  { name: 'a Radiation Badge', desc: 'Still shows green. This land was once considered safe.', effect: s => { s.res.meds += 3; s.colonists.forEach(c => c.mood = Math.min(100, c.mood + 6)); }, effectDesc: '+3 medicine, +6 mood' },
+];
+
+function discoverArtifact(col) {
+  const artifact = ARTIFACTS[Math.floor(Math.random() * ARTIFACTS.length)];
+  log(`🏺 ${col.name} unearthed ${artifact.name} while scouting!`, 'good');
+
+  pendingEvent = true;
+  document.getElementById('event-title').textContent = `🏺 Artifact Found`;
+  document.getElementById('event-desc').textContent = `${col.name} returned clutching ${artifact.name}. ${artifact.desc}`;
+  const choicesEl = document.getElementById('event-choices');
+  choicesEl.innerHTML = '';
+
+  const keepBtn = document.createElement('button');
+  keepBtn.className = 'choice-btn';
+  keepBtn.textContent = `Keep it — ${artifact.effectDesc}`;
+  keepBtn.onclick = () => {
+    artifact.effect(state);
+    state.keptArtifacts.push(artifact);
+    log(`The colony kept ${artifact.name}. ${artifact.effectDesc}.`, 'good');
+    pendingEvent = null;
+    document.getElementById('event-modal').classList.remove('show');
+    renderAll();
+  };
+
+  const tradeBtn = document.createElement('button');
+  tradeBtn.className = 'choice-btn';
+  tradeBtn.textContent = `Trade it away (+12🍖)`;
+  tradeBtn.onclick = () => {
+    state.res.food += 12;
+    log(`Traded ${artifact.name} to a passing merchant for 12 food.`, 'info');
+    pendingEvent = null;
+    document.getElementById('event-modal').classList.remove('show');
+    renderAll();
+  };
+
+  choicesEl.appendChild(keepBtn);
+  choicesEl.appendChild(tradeBtn);
+  document.getElementById('event-modal').classList.add('show');
+}
+
+// ===== ACTIONS =====
+function getIdleColonist() {
+  return state.colonists.find(c => c.busy === 0 && c.health > 20);
+}
+
+function doAction(action) {
+  if(pendingEvent) return;
+  const col = getIdleColonist();
+
+  switch(action) {
+    case 'hunt': {
+      if(!col) { log('No available colonists!','warn'); return; }
+      const gain = 8 + Math.floor(Math.random()*12) + (col.skill==='Hunting'?8:0);
+      col.busy = 4; col.task = '🏹 Hunting';
+      setTimeout(()=>{ state.res.food+=gain; col.task='Idle'; col.busy=0; log(`${col.name} returned with ${gain} food.`,'good'); renderAll(); }, 4000/currentSpeed);
+      log(`${col.name} went hunting.`,'info');
+      break;
+    }
+    case 'chop': {
+      if(!col) { log('No available colonists!','warn'); return; }
+      const treeTiles = state.tiles.map((t,i) => t.type==='tree' ? i : -1).filter(i => i>=0);
+      if(!treeTiles.length) { log('No trees left to chop! Plant some saplings on grass first.','warn'); return; }
+      const gain = 7 + Math.floor(Math.random()*8) + (col.skill==='Building'?5:0);
+      col.busy = 3; col.task = '🪓 Chopping';
+      setTimeout(()=>{
+        state.res.wood += gain;
+        col.task = 'Idle'; col.busy = 0;
+        // Convert a random tree tile to dirt
+        const idx = treeTiles[Math.floor(Math.random()*treeTiles.length)];
+        state.tiles[idx].type = 'dirt';
+        state.tiles[idx].emoji = '';
+        log(`${col.name} returned with ${gain} wood. A tree was cleared.`,'good');
+        renderAll();
+      }, 3000/currentSpeed);
+      log(`${col.name} went to chop trees.`,'info');
+      break;
+    }
+    case 'mine': {
+      if(!col) { log('No available colonists!','warn'); return; }
+      const stone = 6 + Math.floor(Math.random()*8) + (col.skill==='Mining'?6:0);
+      const metal = Math.random()<0.4 ? 2+Math.floor(Math.random()*4) : 0;
+      col.busy = 4; col.task = '⛏ Mining';
+      setTimeout(()=>{
+        state.res.stone+=stone;
+        if(metal){state.res.metal+=metal;}
+        col.task='Idle'; col.busy=0;
+        log(`${col.name} mined ${stone} stone${metal?' and '+metal+' metal':''}.`,'good');
+        renderAll();
+      }, 4000/currentSpeed);
+      log(`${col.name} went mining.`,'info');
+      break;
+    }
+    case 'build': {
+      if(state.res.wood<10||state.res.stone<5){ log('Need 10🪵 and 5🪨 to build!','warn'); return; }
+      if(state.shelters>=5){ log('Colony is fully sheltered!','info'); return; }
+      state.res.wood-=10; state.res.stone-=5;
+      state.shelters++;
+      log(`Built shelter #${state.shelters}. Colonists are safer!`,'good');
+      break;
+    }
+    case 'trade': {
+      if(state.res.food<10){ log('Need 10🍖 to trade!','warn'); return; }
+      state.res.food-=10;
+      const roll = Math.random();
+      if(roll<0.3){      state.res.meds+=4;  log('Trade: gained 4 medicine.','good'); }
+      else if(roll<0.6){ state.res.metal+=6; log('Trade: gained 6 metal.','good'); }
+      else if(roll<0.8){ state.res.wood+=12; log('Trade: gained 12 wood.','good'); }
+      else {             addColonist(state); log('Trade: a skilled settler joined you!','good'); }
+      break;
+    }
+    case 'scout': {
+      if(!col) { log('No available colonists!','warn'); return; }
+      col.busy = 2; col.task = '🔭 Scouting';
+      setTimeout(()=>{
+        col.task='Idle'; col.busy=0;
+        const roll = Math.random();
+        if(roll<0.25){ state.res.food+=15; log(`${col.name} found food caches while scouting! (+15🍖)`,'good'); }
+        else if(roll<0.4){ state.res.metal+=5; log(`${col.name} found salvage! (+5⚙)`,'good'); }
+        else if(roll<0.55){ log(`${col.name} found nothing of interest.`,'info'); }
+        else if(roll<0.75){ triggerRandomEvent(); }
+        else { discoverArtifact(col); }
+        renderAll();
+      }, 2000/currentSpeed);
+      log(`${col.name} went scouting.`,'info');
+      break;
+    }
+  }
+  renderAll();
+}
+
+// ===== EVENTS =====
+function triggerRandomEvent() {
+  if(pendingEvent) return;
+  const evt = EVENTS[Math.floor(Math.random()*EVENTS.length)];
+  pendingEvent = evt;
+
+  const descResult = typeof evt.desc === 'function' ? evt.desc() : { text: evt.desc };
+  const ctx = descResult.text ? descResult : { text: descResult };
+
+  document.getElementById('event-title').textContent = evt.title;
+  document.getElementById('event-desc').textContent = ctx.text;
+  const choicesEl = document.getElementById('event-choices');
+  choicesEl.innerHTML = '';
+  evt.choices.forEach(choice => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.textContent = choice.text;
+    btn.onclick = () => {
+      choice.effect(state, ctx);
+      pendingEvent = null;
+      document.getElementById('event-modal').classList.remove('show');
+      renderAll();
+    };
+    choicesEl.appendChild(btn);
+  });
+  document.getElementById('event-modal').classList.add('show');
+}
+
+// ===== GAME TICK =====
+function gameTick() {
+  if(pendingEvent || currentSpeed === 0) return;
+
+  state.day++;
+  state.ticks++;
+
+  // Season effects
+  const seasonIdx = Math.floor((state.day-1) / 20) % 4;
+
+  // Colonist needs
+  state.colonists.forEach(col => {
+    // Hunger drain
+    const hungerDrain = seasonIdx === 3 ? 4 : 2; // worse in winter
+    col.hunger = Math.max(0, col.hunger - hungerDrain);
+
+    // Eat from stockpile
+    if(state.res.food > 0) {
+      state.res.food--;
+      col.hunger = Math.min(100, col.hunger + 3);
+    }
+
+    // Starving
+    if(col.hunger < 20) {
+      col.health = Math.max(0, col.health - 3);
+      col.mood = Math.max(0, col.mood - 5);
+    } else {
+      col.health = Math.min(100, col.health + 0.5);
+    }
+
+    // Shelters help mood
+    const shelterBonus = state.shelters > 0 ? 2 : -2;
+    col.mood = Math.max(0, Math.min(100, col.mood + shelterBonus - 1));
+
+    // Winter mood penalty
+    if(seasonIdx === 3) col.mood = Math.max(0, col.mood - 2);
+
+    // Death check
+    if(col.health <= 0) {
+      log(`💀 ${col.name} has died from poor conditions!`, 'danger');
+    }
+  });
+
+  // Crop harvests & sapling growth
+  state.tiles.forEach((tile, i) => {
+    if (tile.crop && state.day - tile.crop.plantedDay >= 20) {
+      const yield_ = 18 + Math.floor(Math.random() * 12);
+      state.res.food += yield_;
+      log(`🌾 The crops planted by ${tile.crop.planter} have been harvested! (+${yield_}🍖)`, 'good');
+      tile.crop = null;
+      tile.type = 'grass';
+      tile.emoji = '';
+    }
+    if (tile.sapling && state.day - tile.sapling.plantedDay >= 15) {
+      log(`🌲 A sapling planted by ${tile.sapling.planter} has grown into a tree!`, 'good');
+      tile.sapling = null;
+      tile.type = 'tree';
+      tile.emoji = '🌲';
+    }
+  });
+
+  // Remove dead colonists
+  state.colonists = state.colonists.filter(c => c.health > 0);
+
+  // Warnings
+  if(state.res.food < 10)  log('⚠ Food is running low!','warn');
+  if(state.colonists.length === 0) { gameOver('All colonists have perished.'); return; }
+
+  // Random events (every ~5-10 days, weighted)
+  if(state.ticks % 7 === 0 && Math.random() < 0.6) triggerRandomEvent();
+
+  // Auto-resource trickle (small passive income)
+  if(state.day % 3 === 0) {
+    state.res.food = Math.max(0, state.res.food); // cap minimum
+  }
+
+  renderAll();
+}
+
+// ===== GAME OVER =====
+function gameOver(reason) {
+  clearInterval(tickInterval);
+  document.getElementById('go-reason').textContent = reason;
+  document.getElementById('go-days').textContent = `Your colony survived ${state.day} days.`;
+  document.getElementById('game-over').classList.add('show');
+}
+
+// ===== RENDER ALL =====
+function renderArtifacts() {
+  const list = document.getElementById('artifact-list');
+  if (!state.keptArtifacts.length) {
+    list.innerHTML = '<span style="color:var(--dim);font-size:0.72rem">No artifacts yet.</span>';
+    document.querySelector('#acc-artifacts .accord-header span:first-child').textContent = '⬡ Artifacts';
+    return;
+  }
+  document.querySelector('#acc-artifacts .accord-header span:first-child').textContent = '⬡ Artifacts (' + state.keptArtifacts.length + ')';
+  list.innerHTML = '';
+  state.keptArtifacts.forEach(a => {
+    const card = document.createElement('div');
+    card.className = 'artifact-card';
+    card.innerHTML = '<div class="artifact-name">🏺 ' + a.name + '</div>' +
+      '<div class="artifact-effect">' + a.effectDesc + '</div>';
+    list.appendChild(card);
+  });
+}
+
+function renderAll() {
+  renderResources();
+  renderColonists();
+  renderArtifacts();
+  renderDay();
+  renderMap();
+}
+
+// ===== SPEED =====
+function setSpeed(s) {
+  currentSpeed = s;
+  clearInterval(tickInterval);
+  ['s0','s1','s2'].forEach(id => document.getElementById(id).classList.remove('active'));
+  document.getElementById('s'+s).classList.add('active');
+  if(s > 0) {
+    const delay = s === 1 ? 2500 : 1200;
+    tickInterval = setInterval(gameTick, delay);
+  }
+}
+
+// ===== CHYRON =====
+const CHYRON_JOKES = [
+  'Local man plants tree, claims it was "already leaning that way."',
+  'Raiders report colony food "not as good as advertised."',
+  'Colonist discovers water is wet. Research ongoing.',
+  'Monument sculptor insists the rock "wanted to be art."',
+  'Severe shortage of things to do in winter. Colonists invent complaining.',
+  'Trade caravan visited. Left with food, took nothing else. Suspicious.',
+  'Scout returns from wilds. Declines to say what they saw out there.',
+  'Crops harvested. Farmer credits hard work. Colony credits luck.',
+  'Sickness spreads through colony. Colonists unsurprised.',
+  'Raider asks colony to "consider their position." Colony declines.',
+  'New colonist joins. Immediately assigned worst job.',
+  'Fire breaks out. Colonist blames previous colonist.',
+  'Bone flute recovered. No one admits to playing it at 3am.',
+  'Morale high after monument unveiled. Morale drops after someone trips over it.',
+  'Winter arrives. Colonists express disappointment for fourth year running.',
+  'Glass eye artifact continues to unsettle everyone. Investigation ongoing.',
+  'Ancient coin appraised at "probably worth something to someone."',
+  'Colonist loses rock-paper-scissors. Gets mining duty.',
+  'Wandering trader asks "cash or trade." Colony asks "what is cash."',
+  'Locket found in ruins. No one cries. Definitely.',
+];
+
+const chyronQueues = [[], []];
+const chyronAnimating = [false, false];
+
+function queueChyron(msg, priority) {
+  const item = { msg, day: state.day, priority: priority || 0 };
+  // Pick the lane with fewer items; prefer lane 0
+  const lane = chyronQueues[0].length <= chyronQueues[1].length ? 0 : 1;
+  const q = chyronQueues[lane];
+  if (item.priority > 0) {
+    const idx = q.findIndex(i => i.priority === 0);
+    if (idx === -1) q.push(item);
+    else q.splice(idx, 0, item);
+  } else {
+    q.push(item);
+  }
+  if (!chyronAnimating[lane]) runChyron(lane);
+}
+
+function runChyron(lane) {
+  const q = chyronQueues[lane];
+  const cutoff = state.day - 5;
+  while (q.length && q[0].day < cutoff) q.shift();
+
+  if (!q.length) { chyronAnimating[lane] = false; return; }
+  chyronAnimating[lane] = true;
+
+  const item = q.shift();
+  const el = document.getElementById('chyron-text-' + lane);
+  const track = el.parentElement;
+  el.style.color = item.priority > 0 ? 'var(--danger)' : 'var(--text)';
+  el.textContent = '⬡  ' + item.msg + '     ';
+  el.style.transition = 'none';
+  el.style.left = '100%';
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const trackW = track.offsetWidth;
+      const textW = el.offsetWidth;
+      const duration = (trackW + textW) / 80;
+      el.style.transition = `left ${duration}s linear`;
+      el.style.left = '-' + textW + 'px';
+      setTimeout(() => runChyron(lane), duration * 1000);
+    });
+  });
+}
+
+function tickChyronJoke() {
+  const joke = CHYRON_JOKES[Math.floor(Math.random() * CHYRON_JOKES.length)];
+  queueChyron(joke, 0);
+  // Queue a second joke on the other lane with a small offset
+  setTimeout(() => {
+    const joke2 = CHYRON_JOKES[Math.floor(Math.random() * CHYRON_JOKES.length)];
+    queueChyron(joke2, 0);
+  }, 4000);
+}
+
+// ===== ACHIEVEMENTS =====
+function showAchievement(title, desc) {
+  const toast = document.getElementById('achievement-toast');
+  document.getElementById('ach-title').textContent = title;
+  document.getElementById('ach-desc').textContent = desc;
+  toast.classList.add('show');
+  log('🏆 Achievement Unlocked: ' + title, 'good');
+  setTimeout(() => toast.classList.remove('show'), 5000);
+}
+
+// ===== ACCORDION =====
+function toggleAccord(id) {
+  const sections = document.querySelectorAll('.accord-section');
+  sections.forEach(s => {
+    if (s.id === id) {
+      s.classList.add('open');
+    } else {
+      s.classList.remove('open');
+    }
+  });
+}
+
+// ===== INIT =====
+function initGame() {
+  document.getElementById('game-over').classList.remove('show');
+  document.getElementById('event-modal').classList.remove('show');
+  pendingEvent = null;
+  clearInterval(tickInterval);
+
+  state = {
+    day: 1,
+    ticks: 0,
+    shelters: 1,
+    achievements: {},
+    keptArtifacts: [],
+    res: { food: 40, wood: 30, stone: 20, metal: 10, meds: 5 },
+    colonists: [],
+    tiles: []
+  };
+
+  // Start with 3 colonists
+  for(let i=0;i<3;i++) state.colonists.push(makeColonist());
+
+  buildMap();
+  renderAll();
+  log('Your colony lands on the frontier. Survive!','good');
+  log('Build shelters, gather resources, and face the unknown.','info');
+
+  // Seed chyron with a welcome and start joke timer
+  queueChyron('Welcome to Dustfall. Good luck. You will need it.', 0);
+  queueChyron('Tip: plant saplings on grass to regrow chopped trees.', 0);
+  if (window._jokeTimer) clearInterval(window._jokeTimer);
+  window._jokeTimer = setInterval(tickChyronJoke, 18000);
+
+  setSpeed(1);
+}
+
+initGame();
+</script>
+</body>
+</html>
