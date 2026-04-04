@@ -143,8 +143,8 @@
     user-select: none;
   }
   .tile:hover { transform: scale(1.15); z-index: 10; }
-  .tile.grass { background: #141f10; border-color: #1a2a14; }
-  .tile.dirt  { background: #1a1510; border-color: #241e14; }
+  .tile.grass { background: #1e3a14; border-color: #2a5018; }
+  .tile.dirt  { background: #3a2a14; border-color: #4a3818; }
   .tile.rock  { background: #151520; border-color: #1e1e2a; }
   .tile.water { background: #0a1520; border-color: #0f2030; animation: water-shimmer 3s infinite; }
   .tile.tree  { background: #0e1c0e; border-color: #142014; }
@@ -495,6 +495,42 @@
     color: var(--text);
     line-height: 1.5;
   }
+  .policy-label {
+    font-size: 0.65rem;
+    color: var(--dim);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .policy-options { display: flex; flex-direction: column; gap: 6px; }
+  .policy-btn {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.03);
+    color: var(--dim);
+    cursor: pointer;
+    border-radius: 4px;
+    text-align: left;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .policy-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--glow);
+  }
+  .policy-btn:hover:not(.active) { border-color: var(--dim); color: var(--text); }
+  .policy-desc {
+    font-size: 0.62rem;
+    color: var(--dim);
+    display: block;
+  }
+  .policy-btn.active .policy-desc { color: rgba(232,160,32,0.6); }
+
   .artifact-card {
     background: rgba(255,255,255,0.03);
     border: 1px solid var(--border);
@@ -553,6 +589,14 @@
     letter-spacing: 0.04em;
   }
 
+  .btn.flash-invalid, .flash-invalid {
+    animation: flash-red 0.6s ease !important;
+  }
+  @keyframes flash-red {
+    0%,100% { border-color: transparent !important; box-shadow: none !important; }
+    20%,60% { border-color: var(--danger) !important; box-shadow: 0 0 8px var(--danger) !important; }
+  }
+
   .tile.planting-active { animation: planting-pulse 0.8s infinite ease-in-out; }
   @keyframes planting-pulse {
     0%,100% { opacity: 1; }
@@ -598,6 +642,18 @@
       </div>
       <div class="accord-body">
         <div id="colonist-list"></div>
+      </div>
+    </div>
+    <div class="accord-section" id="acc-policy">
+      <div class="accord-header" onclick="toggleAccord('acc-policy')">
+        <span>⬡ Raiders</span><span class="accord-arrow">▾</span>
+      </div>
+      <div class="accord-body">
+        <div class="policy-label">Raider Response</div>
+        <div class="policy-options">
+          <button class="policy-btn active" id="pol-defense" onclick="setRaiderPolicy('defense')">⚔ Defense<span class="policy-desc">Fight back. Better shelters = better odds.</span></button>
+          <button class="policy-btn" id="pol-tribute" onclick="setRaiderPolicy('tribute')">💰 Tribute<span class="policy-desc">Pay up. Safer but costly each visit.</span></button>
+        </div>
       </div>
     </div>
     <div class="accord-section" id="acc-artifacts">
@@ -691,15 +747,55 @@ function weightedRandom(items) {
 const EVENTS = [
   {
     id:'raiders', title:'⚔ RAIDERS SPOTTED',
-    desc:'A band of raiders is approaching your colony! They want supplies. How do you respond?',
-    season: null,
+    silent: true,
+    desc: function() {
+      const mischiefs = [
+        'They trampled a crop field on the way in.',
+        'They scrawled crude insults on a monument.',
+        'They spooked the colony\'s animals before arriving.',
+        'They poisoned the water supply on approach.',
+        'They set fire to a woodpile at the perimeter.',
+        'They stole from the outer stores before being spotted.',
+      ];
+      const mischief = mischiefs[Math.floor(Math.random() * mischiefs.length)];
+      return { text: '', mischief };
+    },
     choices: [
-      { text:'💰 Pay them off (lose 15🍖, 5🪵)', effect: s => { s.res.food-=15; s.res.wood-=5; log('Paid off the raiders. They leave grumbling.','warn'); } },
-      { text:'🗡 Fight them (50% chance — may lose colonist)', effect: s => {
-        if(Math.random()<0.5){ log('You fought off the raiders! Victory!','good'); }
-        else { injureRandomColonist(s); log('The fight was costly. A colonist was injured.','danger'); }
-      }},
-      { text:'🏃 Flee into the wilds (lose 8🍖)', effect: s => { s.res.food-=8; log('You fled and regrouped safely.','info'); } },
+      { text: 'auto', effect: function(s, ctx) {
+        // Flash policy header red
+        const header = document.querySelector('#acc-policy .accord-header');
+        if (header) {
+          header.style.color = 'var(--danger)';
+          header.style.textShadow = '0 0 8px var(--danger)';
+          setTimeout(() => {
+            header.style.color = '';
+            header.style.textShadow = '';
+          }, 3000);
+        }
+
+        // Mischief
+        s.res.food = Math.max(0, s.res.food - 5);
+        log('⚔ Raiders! ' + ctx.mischief, 'danger');
+
+        if (s.raiderPolicy === 'tribute') {
+          const food = 12 + Math.floor(Math.random() * 8);
+          const wood = 4 + Math.floor(Math.random() * 4);
+          s.res.food = Math.max(0, s.res.food - food);
+          s.res.wood = Math.max(0, s.res.wood - wood);
+          s.colonists.forEach(c => { c.mood = Math.max(0, c.mood - 6); });
+          log('Tribute paid: ' + food + '🍖 and ' + wood + '🪵. Raiders withdraw.', 'warn');
+        } else {
+          const strength = s.shelters * 10 + s.colonists.length * 8;
+          if (Math.random() * 100 < strength) {
+            log('Defenses held. Raiders driven off!', 'good');
+            s.colonists.forEach(c => { c.mood = Math.min(100, c.mood + 8); });
+          } else {
+            injureRandomColonist(s);
+            s.res.food = Math.max(0, s.res.food - 10);
+            log('Raiders broke through. A colonist was hurt and supplies looted.', 'danger');
+          }
+        }
+      }}
     ]
   },
   {
@@ -776,13 +872,22 @@ const MONUMENT_NAMES = [
   'the Silent Monolith','an Ancient Totem','the Cradle Stone'
 ];
 
+function flashTileRed(tileIdx) {
+  const el = document.querySelectorAll('.tile')[tileIdx];
+  if (!el) return;
+  el.classList.remove('flash-invalid');
+  void el.offsetWidth; // force reflow to restart animation
+  el.classList.add('flash-invalid');
+  setTimeout(() => el.classList.remove('flash-invalid'), 650);
+}
+
 function onRockClick(tileIdx) {
   if (pendingEvent) return;
   const tile = state.tiles[tileIdx];
   if (tile.monument) { log(`This rock already holds ${tile.monument}. It stands proud.`, 'info'); return; }
 
   const col = getIdleColonist();
-  if (!col) { log('No idle colonist available to sculpt!', 'warn'); return; }
+  if (!col) { flashTileRed(tileIdx); log('No idle colonist available to sculpt!', 'warn'); return; }
 
   const name = MONUMENT_NAMES[Math.floor(Math.random() * MONUMENT_NAMES.length)];
   col.task = '🗿 Sculpting';
@@ -842,7 +947,7 @@ function onDirtClick(tileIdx) {
     return;
   }
   const col = getIdleColonist();
-  if (!col) { log('No idle colonist available to plant!', 'warn'); return; }
+  if (!col) { flashTileRed(tileIdx); log('No idle colonist available to plant!', 'warn'); return; }
 
   col.busy = 3; col.task = '🌱 Planting';
   tile.planting = true;
@@ -868,7 +973,7 @@ function onGrassClick(tileIdx) {
     return;
   }
   const col = getIdleColonist();
-  if (!col) { log('No idle colonist available to plant!', 'warn'); return; }
+  if (!col) { flashTileRed(tileIdx); log('No idle colonist available to plant!', 'warn'); return; }
 
   col.busy = 3; col.task = '🌱 Planting';
   tile.planting = true;
@@ -1122,13 +1227,22 @@ function getIdleColonist() {
   return state.colonists.find(c => c.busy === 0 && c.health > 20);
 }
 
+function flashBtn(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove('flash-invalid');
+  void el.offsetWidth;
+  el.classList.add('flash-invalid');
+  setTimeout(() => el.classList.remove('flash-invalid'), 650);
+}
+
 function doAction(action) {
   if(pendingEvent) return;
   const col = getIdleColonist();
 
   switch(action) {
     case 'hunt': {
-      if(!col) { log('No available colonists!','warn'); return; }
+      if(!col) { flashBtn('btn-hunt'); log('No available colonists!','warn'); return; }
       const gain = 8 + Math.floor(Math.random()*12) + (col.skill==='Hunting'?8:0);
       col.busy = 4; col.task = '🏹 Hunting';
       setTimeout(()=>{ state.res.food+=gain; col.task='Idle'; col.busy=0; log(`${col.name} returned with ${gain} food.`,'good'); renderAll(); }, 4000/currentSpeed);
@@ -1136,9 +1250,9 @@ function doAction(action) {
       break;
     }
     case 'chop': {
-      if(!col) { log('No available colonists!','warn'); return; }
+      if(!col) { flashBtn('btn-chop'); log('No available colonists!','warn'); return; }
       const treeTiles = state.tiles.map((t,i) => t.type==='tree' ? i : -1).filter(i => i>=0);
-      if(!treeTiles.length) { log('No trees left to chop! Plant some saplings on grass first.','warn'); return; }
+      if(!treeTiles.length) { flashBtn('btn-chop'); log('No trees left to chop! Plant some saplings on grass first.','warn'); return; }
       const gain = 7 + Math.floor(Math.random()*8) + (col.skill==='Building'?5:0);
       col.busy = 3; col.task = '🪓 Chopping';
       setTimeout(()=>{
@@ -1155,7 +1269,7 @@ function doAction(action) {
       break;
     }
     case 'mine': {
-      if(!col) { log('No available colonists!','warn'); return; }
+      if(!col) { flashBtn('btn-mine'); log('No available colonists!','warn'); return; }
       const stone = 6 + Math.floor(Math.random()*8) + (col.skill==='Mining'?6:0);
       const metal = Math.random()<0.4 ? 2+Math.floor(Math.random()*4) : 0;
       col.busy = 4; col.task = '⛏ Mining';
@@ -1170,15 +1284,15 @@ function doAction(action) {
       break;
     }
     case 'build': {
-      if(state.res.wood<10||state.res.stone<5){ log('Need 10🪵 and 5🪨 to build!','warn'); return; }
-      if(state.shelters>=5){ log('Colony is fully sheltered!','info'); return; }
+      if(state.res.wood<10||state.res.stone<5){ flashBtn('btn-build'); log('Need 10🪵 and 5🪨 to build!','warn'); return; }
+      if(state.shelters>=5){ flashBtn('btn-build'); log('Colony is fully sheltered!','info'); return; }
       state.res.wood-=10; state.res.stone-=5;
       state.shelters++;
       log(`Built shelter #${state.shelters}. Colonists are safer!`,'good');
       break;
     }
     case 'trade': {
-      if(state.res.food<10){ log('Need 10🍖 to trade!','warn'); return; }
+      if(state.res.food<10){ flashBtn('btn-trade'); log('Need 10🍖 to trade!','warn'); return; }
       state.res.food-=10;
       const roll = Math.random();
       if(roll<0.3){      state.res.meds+=4;  log('Trade: gained 4 medicine.','good'); }
@@ -1188,7 +1302,7 @@ function doAction(action) {
       break;
     }
     case 'scout': {
-      if(!col) { log('No available colonists!','warn'); return; }
+      if(!col) { flashBtn('btn-scout'); log('No available colonists!','warn'); return; }
       col.busy = 2; col.task = '🔭 Scouting';
       setTimeout(()=>{
         col.task='Idle'; col.busy=0;
@@ -1211,11 +1325,18 @@ function doAction(action) {
 function triggerRandomEvent() {
   if(pendingEvent) return;
   const evt = EVENTS[Math.floor(Math.random()*EVENTS.length)];
-  pendingEvent = evt;
 
   const descResult = typeof evt.desc === 'function' ? evt.desc() : { text: evt.desc };
-  const ctx = descResult.text ? descResult : { text: descResult };
+  const ctx = typeof descResult === 'object' && descResult.text !== undefined ? descResult : { text: descResult };
 
+  // Silent events resolve automatically without a modal
+  if (evt.silent) {
+    evt.choices[0].effect(state, ctx);
+    renderAll();
+    return;
+  }
+
+  pendingEvent = evt;
   document.getElementById('event-title').textContent = evt.title;
   document.getElementById('event-desc').textContent = ctx.text;
   const choicesEl = document.getElementById('event-choices');
@@ -1236,6 +1357,52 @@ function triggerRandomEvent() {
 }
 
 // ===== GAME TICK =====
+// ===== COLONY GAMES =====
+const COLONY_GAMES = [
+  {
+    task: '🎲 Playing dice',
+    moodBoost: 12,
+    desc: names => names.join(' and ') + ' started a dice game in the common area.',
+    result: names => names[Math.floor(Math.random()*names.length)] + ' won the dice game. Everyone had a good time.',
+  },
+  {
+    task: '🏃 Racing',
+    moodBoost: 10,
+    desc: names => names.join(', ') + ' organized a footrace around the perimeter.',
+    result: names => names[Math.floor(Math.random()*names.length)] + ' won the race, barely.',
+  },
+  {
+    task: '🎵 Singing',
+    moodBoost: 14,
+    desc: names => names.join(' and ') + ' started singing old songs by the fire.',
+    result: names => 'The singing went on for hours. ' + names.join(' and ') + ' feel lighter.',
+  },
+  {
+    task: '🃏 Card game',
+    moodBoost: 11,
+    desc: names => names.join(', ') + ' dealt out a hand of cards.',
+    result: names => names[Math.floor(Math.random()*names.length)] + ' cleaned everyone out. Friendly terms.',
+  },
+  {
+    task: '📖 Storytelling',
+    moodBoost: 13,
+    desc: names => names[0] + ' gathered the others to tell stories from before.',
+    result: names => 'The stories ran long into the evening. Good memories shared.',
+  },
+  {
+    task: '🥊 Sparring',
+    moodBoost: 9,
+    desc: names => names.join(' and ') + ' are sparring outside to stay sharp.',
+    result: names => 'Neither ' + names.join(' nor ') + ' would admit defeat. Both feel great.',
+  },
+  {
+    task: '🎯 Target practice',
+    moodBoost: 10,
+    desc: names => names.join(' and ') + ' set up a target range to pass the time.',
+    result: names => names[Math.floor(Math.random()*names.length)] + ' hit the mark most often. Bragging rights claimed.',
+  },
+];
+
 function gameTick() {
   if(pendingEvent || currentSpeed === 0) return;
 
@@ -1296,6 +1463,24 @@ function gameTick() {
     }
   });
 
+  // Colonist games — idle, fed colonists organize fun
+  const idleFed = state.colonists.filter(c => c.busy === 0 && c.hunger >= 40);
+  if (idleFed.length >= 2 && Math.random() < 0.18) {
+    const duration = 2 + Math.floor(Math.random() * 4); // 2-5 hours
+    const game = COLONY_GAMES[Math.floor(Math.random() * COLONY_GAMES.length)];
+    const players = idleFed.slice(0, Math.min(idleFed.length, 2 + Math.floor(Math.random() * 2)));
+    players.forEach(c => { c.busy = duration; c.task = game.task; });
+    log(game.desc(players.map(c => c.name)), 'info');
+    setTimeout(() => {
+      players.forEach(c => {
+        c.busy = 0; c.task = 'Idle';
+        c.mood = Math.min(100, c.mood + game.moodBoost);
+      });
+      log(game.result(players.map(c => c.name)), 'good');
+      renderAll();
+    }, duration * 1000 / currentSpeed);
+  }
+
   // Remove dead colonists
   state.colonists = state.colonists.filter(c => c.health > 0);
 
@@ -1305,6 +1490,19 @@ function gameTick() {
 
   // Random events (every ~5-10 days, weighted)
   if(state.ticks % 7 === 0 && Math.random() < 0.6) triggerRandomEvent();
+
+  // Spontaneous saplings at end of season
+  if(state.day % 20 === 0) {
+    const freeTiles = state.tiles
+      .map((t, i) => i)
+      .filter(i => state.tiles[i].type === 'grass' && !state.tiles[i].sapling && !state.tiles[i].crop);
+    const count = 1 + Math.floor(Math.random() * 2); // 1 or 2
+    for(let n = 0; n < count && freeTiles.length; n++) {
+      const pick = freeTiles.splice(Math.floor(Math.random() * freeTiles.length), 1)[0];
+      state.tiles[pick].sapling = { plantedDay: state.day, planter: 'Nature' };
+    }
+    log('🌱 The season turns. A wild sapling or two has sprouted on the grassland.', 'good');
+  }
 
   // Auto-resource trickle (small passive income)
   if(state.day % 3 === 0) {
@@ -1441,6 +1639,14 @@ function tickChyronJoke() {
   }, 4000);
 }
 
+// ===== POLICY =====
+function setRaiderPolicy(policy) {
+  state.raiderPolicy = policy;
+  document.getElementById('pol-defense').classList.toggle('active', policy === 'defense');
+  document.getElementById('pol-tribute').classList.toggle('active', policy === 'tribute');
+  log('Raider policy set to: ' + (policy === 'defense' ? '⚔ Defense' : '💰 Tribute'), 'info');
+}
+
 // ===== ACHIEVEMENTS =====
 function showAchievement(title, desc) {
   const toast = document.getElementById('achievement-toast');
@@ -1476,6 +1682,7 @@ function initGame() {
     shelters: 1,
     achievements: {},
     keptArtifacts: [],
+    raiderPolicy: 'defense',
     res: { food: 40, wood: 30, stone: 20, metal: 10, meds: 5 },
     colonists: [],
     tiles: []
