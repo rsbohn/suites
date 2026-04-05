@@ -108,6 +108,31 @@
     border-radius: 10px;
     padding: 10px 12px;
   }
+  .price-row.toggle {
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    border-radius: 6px;
+    padding: 4px 6px;
+    margin: 0 -6px;
+  }
+  .price-row.toggle.active {
+    background: #1a3a10;
+    border: 0.5px solid #4a8a28;
+    color: #cfe8a0;
+  }
+  .price-row.toggle .toggle-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    border: 1px solid #4a4838;
+    background: #1a1912;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  .price-row.toggle.active .toggle-dot {
+    background: #7CBA4A;
+    border-color: #7CBA4A;
+  }
   .panel h3 {
     font-size: 11px;
     font-weight: 500;
@@ -135,6 +160,11 @@
     color: #c8c0a8;
   }
   .seed-btn:hover { background: #1a3a10; border-color: #4a8a28; }
+  .seed-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    background: #1d1b15;
+  }
   .seed-btn .sname { font-weight: 500; color: #e8e0cc; font-size: 12px; }
   .seed-btn .scost { color: #6a6040; font-size: 11px; }
   .seed-btn .scount { float: right; font-size: 11px; color: #7CBA4A; font-weight: 500; }
@@ -253,17 +283,18 @@ canvas.height = ROWS * TS;
 const TILE = { DIRT:0, TREE:1, ROCK:2, WATER:3, CROP:4 };
 
 const SEEDS = [
-  { id:'wheat',   name:'Wheat',   emoji:'🌾', growTime:55,  seedCost:3,  basePrice:6,  price:6,  owned:5 },
-  { id:'carrot',  name:'Carrot',  emoji:'🥕', growTime:90,  seedCost:5,  basePrice:10, price:10, owned:3 },
-  { id:'corn',    name:'Corn',    emoji:'🌽', growTime:140, seedCost:9,  basePrice:16, price:16, owned:0 },
-  { id:'tomato',  name:'Tomato',  emoji:'🍅', growTime:200, seedCost:14, basePrice:26, price:26, owned:0 },
-  { id:'pumpkin', name:'Pumpkin', emoji:'🎃', growTime:300, seedCost:20, basePrice:42, price:42, owned:0 },
+  { id:'wheat',   name:'Wheat',   emoji:'🌾', growTime:55,  seedCost:3,  basePrice:6,  price:6,  owned:5,  enabled: true },
+  { id:'carrot',  name:'Carrot',  emoji:'🥕', growTime:90,  seedCost:5,  basePrice:10, price:10, owned:3,  enabled: true },
+  { id:'corn',    name:'Corn',    emoji:'🌽', growTime:140, seedCost:9,  basePrice:16, price:16, owned:0,  enabled: false },
+  { id:'tomato',  name:'Tomato',  emoji:'🍅', growTime:200, seedCost:14, basePrice:26, price:26, owned:0,  enabled: false },
+  { id:'pumpkin', name:'Pumpkin', emoji:'🎃', growTime:300, seedCost:20, basePrice:42, price:42, owned:0,  enabled: false },
 ];
 
 let gold = 25, totalHarvested = 0, day = 1, tick = 0, gameSpeed = 1;
 let harvest = {}; SEEDS.forEach(s => harvest[s.id] = 0);
 let logMsg = 'Surveying Sandy Acres...';
 let plantsThisCycle = 0, harvestMode = false, plantRobinIdx = 0;
+let uiDirty = true;
 
 // ── Chyron ───────────────────────────────────────────────────────
 const CHYRON_POOL = [
@@ -423,17 +454,23 @@ let farmerPath=[],farmerPathIdx=0,farmerAction=null,actionCooldown=0,idleWait=0;
 let fishingDay=false,fishingTick=0,fishingDuration=0,fishingSpot=null;
 const FISHING_MESSAGES=['Gone fishing','Taking the day off','Fishing — do not disturb','Waiting for a bite...','Lines in the water','A well-earned rest'];
 
+function activeSeeds() { return SEEDS.filter(s => s.enabled); }
 function chooseSeedToPlant() {
-  const available=SEEDS.filter(s=>s.owned>0);
+  const available=activeSeeds().filter(s=>s.owned>0);
   if (!available.length) return null;
-  for (let i=0;i<SEEDS.length;i++){const s=SEEDS[plantRobinIdx%SEEDS.length];plantRobinIdx++;if(s.owned>0)return s;}
+  for (let i=0;i<SEEDS.length;i++){
+    const s=SEEDS[plantRobinIdx%SEEDS.length];
+    plantRobinIdx++;
+    if(s.enabled&&s.owned>0) return s;
+  }
   return available[0];
 }
 function autoBuy() {
-  const lacking=SEEDS.filter(s=>gold>=s.seedCost&&s.owned===0).sort((a,b)=>b.seedCost-a.seedCost);
-  for (const s of lacking) if(gold>=s.seedCost){gold-=s.seedCost;s.owned+=3;logMsg=`Bought ${s.emoji} ${s.name} seeds`;}
-  const low=SEEDS.filter(s=>gold>=s.seedCost&&s.owned>0&&s.owned<2).sort((a,b)=>b.seedCost-a.seedCost);
-  for (const s of low) if(gold>=s.seedCost){gold-=s.seedCost;s.owned+=3;logMsg=`Restocked ${s.emoji} ${s.name} seeds`;break;}
+  const active = activeSeeds();
+  const lacking=active.filter(s=>gold>=s.seedCost&&s.owned===0).sort((a,b)=>b.seedCost-a.seedCost);
+  for (const s of lacking) if(gold>=s.seedCost){gold-=s.seedCost;s.owned+=3;logMsg=`Bought ${s.emoji} ${s.name} seeds`;uiDirty=true;}
+  const low=active.filter(s=>gold>=s.seedCost&&s.owned>0&&s.owned<2).sort((a,b)=>b.seedCost-a.seedCost);
+  for (const s of low) if(gold>=s.seedCost){gold-=s.seedCost;s.owned+=3;logMsg=`Restocked ${s.emoji} ${s.name} seeds`;uiDirty=true;break;}
 }
 function countRipeCrops(){
   let n=0;
@@ -525,7 +562,7 @@ function stepFarmer(){
       if(type==='harvest'){
         const cell=grid[r][c];
         if(cell.type===TILE.CROP&&cell.crop&&cell.crop.grown>=cell.crop.growTime){
-          harvest[cell.crop.id]=(harvest[cell.crop.id]||0)+1;totalHarvested++;
+          harvest[cell.crop.id]=(harvest[cell.crop.id]||0)+1;totalHarvested++;uiDirty=true;
           const seed=SEEDS.find(s=>s.id===cell.crop.id);
           debugLog(cell.crop.id,r,c);
           logMsg=`Harvested ${seed.emoji} ${seed.name}!`;
@@ -536,7 +573,7 @@ function stepFarmer(){
         const seedToUse=(seedId&&SEEDS.find(s=>s.id===seedId&&s.owned>0))||chooseSeedToPlant();
         if(seedToUse&&cell.type===TILE.DIRT&&!cell.crop){
           cell.type=TILE.CROP;cell.crop={id:seedToUse.id,grown:0,growTime:seedToUse.growTime};
-          seedToUse.owned--;plantsThisCycle++;
+          seedToUse.owned--;plantsThisCycle++;uiDirty=true;
           logMsg=`Planted ${seedToUse.emoji} ${seedToUse.name} (${plantsThisCycle}/${PLANT_BEFORE_HARVEST})`;
           actionCooldown=5;
         }
@@ -559,11 +596,13 @@ function updatePrices(){
     const d=(Math.random()-0.47)*s.basePrice*0.22;
     s.price=Math.max(Math.round(s.basePrice*0.4),Math.min(Math.round(s.basePrice*2.8),Math.round(s.price+d)));
   });
+  uiDirty=true;
 }
 function sellAll(){
   let earned=0;
   SEEDS.forEach(s=>{earned+=(harvest[s.id]||0)*s.price;harvest[s.id]=0;});
-  if(earned>0){gold+=earned;logMsg=`Sold harvest for $${earned}!`;}else logMsg='Nothing to sell yet.';
+  if(earned>0){gold+=earned;logMsg=`Sold harvest for $${earned}!`;uiDirty=true;}
+  else logMsg='Nothing to sell yet.';
 }
 function setSpeed(v){
   gameSpeed=v;
@@ -571,8 +610,16 @@ function setSpeed(v){
 }
 function manualBuy(i){
   const s=SEEDS[i];
-  if(gold>=s.seedCost){gold-=s.seedCost;s.owned+=3;logMsg=`Bought 3× ${s.name} seeds`;}
+  if(!s.enabled){logMsg=`${s.name} is disabled — toggle it on first.`;return;}
+  if(gold>=s.seedCost){gold-=s.seedCost;s.owned+=3;logMsg=`Bought 3× ${s.name} seeds`;uiDirty=true;}
   else logMsg=`Need $${s.seedCost} for seeds`;
+}
+function toggleSeed(i){
+  const s=SEEDS[i];
+  s.enabled=!s.enabled;
+  uiDirty=true;
+  if(!s.enabled){logMsg=`${s.name} disabled. No new planting.`;}
+  else logMsg=`${s.name} enabled. Seeds welcome.`;
 }
 
 // ── Drawing ────────────────────────────────────────────────────────
@@ -646,6 +693,26 @@ function drawFarmerWorking(){
   ctx.fillStyle='#8B5E3C';ctx.fillRect(px-TS*0.24,py-TS*0.38,TS*0.48,5);ctx.fillRect(px-TS*0.15,py-TS*0.54,TS*0.3,TS*0.18);
 }
 
+function renderMarket(){
+  document.getElementById('price-list').innerHTML=SEEDS.map((s,i)=>{
+    const h=harvest[s.id]||0;
+    const trend=s.price>s.basePrice*1.05?'▲':s.price<s.basePrice*0.95?'▼':'–';
+    const cls=trend==='▲'?'up':trend==='▼'?'down':'same';
+    return `<div class="price-row toggle ${s.enabled?'active':''}" onclick="toggleSeed(${i})">
+      <span><span class="toggle-dot"></span>${s.emoji} ${s.name}${h>0?` <span style="font-size:11px;color:#5a5838">(${h})</span>`:''}</span>
+      <span class="price-val">$${s.price} <span class="${cls}" style="font-size:11px">${trend}</span></span>
+    </div>`;
+  }).join('');
+  document.getElementById('shop-grid').innerHTML=SEEDS.map((s,i)=>
+    `<button class="seed-btn" onclick="manualBuy(${i})" ${s.enabled?'':'disabled'}>
+      <span class="scount">×${s.owned}</span>
+      <div class="sname">${s.emoji} ${s.name}</div>
+      <div class="scost">${s.enabled?`$${s.seedCost}/3 seeds`:'Disabled'}</div>
+    </button>`
+  ).join('');
+  uiDirty=false;
+}
+
 function render(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
   for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) drawTile(r,c);
@@ -654,15 +721,7 @@ function render(){
   document.getElementById('harvest-disp').textContent=totalHarvested;
   document.getElementById('day-disp').textContent=day;
   document.getElementById('log-msg').textContent=logMsg;
-  document.getElementById('price-list').innerHTML=SEEDS.map(s=>{
-    const h=harvest[s.id]||0;
-    const trend=s.price>s.basePrice*1.05?'▲':s.price<s.basePrice*0.95?'▼':'–';
-    const cls=trend==='▲'?'up':trend==='▼'?'down':'same';
-    return `<div class="price-row"><span>${s.emoji} ${s.name}${h>0?` <span style="font-size:11px;color:#5a5838">(${h})</span>`:''}</span><span class="price-val">$${s.price} <span class="${cls}" style="font-size:11px">${trend}</span></span></div>`;
-  }).join('');
-  document.getElementById('shop-grid').innerHTML=SEEDS.map((s,i)=>
-    `<button class="seed-btn" onclick="manualBuy(${i})"><span class="scount">×${s.owned}</span><div class="sname">${s.emoji} ${s.name}</div><div class="scost">$${s.seedCost}/3 seeds</div></button>`
-  ).join('');
+  if(uiDirty) renderMarket();
 }
 
 // ── Main loop ──────────────────────────────────────────────────────
