@@ -1,604 +1,107 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Quiet Field</title>
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=EB+Garamond:wght@600&display=swap" rel="stylesheet">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Suites</title>
   <style>
     :root {
-      --sky-top: #82c8ef;
-      --sky-mid: #b5dff7;
-      --sky-low: #dff0fc;
-      --field-top: #bfde96;
-      --field-low: #a4cc7e;
-      --hill-1: #8db86e;
-      --hill-2: #7eaa60;
-      --soil: #8a7565;
-      --stem: #528a5c;
-      --leaf: #5ab86a;
-      --leaf-dark: #3d8f52;
-      --card: rgba(255, 255, 255, 0.88);
-      --text: #2a3a4a;
-      --muted: #556678;
+      color-scheme: dark;
+      --bg: #0a0c0f;
+      --panel: #111418;
+      --border: #1e2530;
+      --accent: #e8a020;
+      --accent2: #20a0e8;
+      --text: #c8d0d8;
+      --dim: #5a6270;
     }
-
-    * { box-sizing: border-box; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Share Tech Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       min-height: 100vh;
-      font-family: "Space Grotesk", "EB Garamond", system-ui, sans-serif;
-      background:
-        radial-gradient(circle at 22% 18%, rgba(200, 220, 240, 0.32), transparent 38%),
-        radial-gradient(circle at 78% 12%, rgba(170, 210, 235, 0.28), transparent 34%),
-        #bfe0f4;
-      display: grid;
-      place-items: center;
-      color: var(--text);
-    }
-
-    .scene {
-      position: relative;
-      width: min(96vw, 1080px);
-      aspect-ratio: 16 / 9;
-      background: linear-gradient(
-        180deg,
-        var(--sky-top) 0%,
-        var(--sky-mid) 35%,
-        var(--sky-low) 52%,
-        var(--field-top) 52%,
-        var(--field-low) 100%
-      );
-      border-radius: 24px;
-      overflow: hidden;
-      box-shadow:
-        0 22px 48px rgba(150, 170, 190, 0.15),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.6);
-    }
-
-    .grain {
-      position: absolute;
-      inset: 0;
-      background-image: radial-gradient(#000 1px, transparent 1px);
-      background-size: 3px 3px;
-      opacity: 0.05;
-      pointer-events: none;
-      mix-blend-mode: soft-light;
-    }
-
-    .sun {
-      position: absolute;
-      top: 5%;
-      left: 12%;
-      width: 128px;
-      height: 128px;
-      background: radial-gradient(circle at 38% 40%, #fffef8 0 24%, #fef6e0 24% 60%, #fad898 60% 100%);
-      border-radius: 50%;
-      box-shadow: 0 0 100px rgba(250, 230, 140, 0.65);
-    }
-
-    .cloud {
-      position: absolute;
-      width: 160px;
-      height: 70px;
-      background: #eef5fb;
-      border-radius: 50px;
-      filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.12));
-      opacity: 0.85;
-    }
-    .cloud::before,
-    .cloud::after {
-      content: "";
-      position: absolute;
-      background: #eef5fb;
-      border-radius: 50%;
-    }
-    .cloud::before {
-      width: 80px;
-      height: 80px;
-      top: -30px;
-      left: 16px;
-    }
-    .cloud::after {
-      width: 90px;
-      height: 90px;
-      top: -22px;
-      right: 16px;
-    }
-    .cloud-1 { top: 14%; left: 36%; animation: clouddrift 22s ease-in-out infinite; }
-    .cloud-2 { top: 10%; right: 18%; width: 140px; animation: clouddrift 30s ease-in-out infinite reverse; }
-    .cloud-3 { top: 20%; left: 18%; width: 180px; opacity: 0.75; animation: clouddrift 26s ease-in-out infinite 5s; }
-
-    @keyframes clouddrift {
-      0%, 100% { transform: translateX(0); }
-      50% { transform: translateX(14px); }
-    }
-
-    .bee {
-      position: absolute;
-      left: 57%;
-      bottom: 66%;
-      width: 20px;
-      height: 13px;
-      background: #f5c030;
-      border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
-      box-shadow:
-        inset -5px 0 0 rgba(20, 10, 0, 0.55),
-        inset -10px 0 0 rgba(20, 10, 0, 0.28);
-      animation: beefloat 5s ease-in-out infinite;
-      pointer-events: none;
-      z-index: 2;
-    }
-
-    .bee::before {
-      content: "";
-      position: absolute;
-      top: -8px;
-      left: 2px;
-      width: 11px;
-      height: 9px;
-      background: rgba(210, 238, 255, 0.72);
-      border-radius: 50%;
-      transform: rotate(-22deg);
-      box-shadow: 9px 1px 0 rgba(210, 238, 255, 0.62);
-    }
-
-    @keyframes beefloat {
-      0%, 100% { transform: translate(0, 0) rotate(0deg); }
-      25% { transform: translate(5px, -10px) rotate(6deg); }
-      50% { transform: translate(-3px, -18px) rotate(-4deg); }
-      75% { transform: translate(7px, -8px) rotate(5deg); }
-    }
-
-    .windmill {
-      position: absolute;
-      right: 14%;
-      bottom: 28%;
-      width: 90px;
-      height: 200px;
-      pointer-events: none;
-    }
-
-    .windmill .tower {
-      position: absolute;
-      bottom: 0;
-      left: 50%;
-      width: 14px;
-      height: 160px;
-      transform: translateX(-50%);
-      background: transparent;
-      border: 2px solid #7a8a9a;
-      border-radius: 10px;
-    }
-
-    .windmill .head {
-      position: absolute;
-      bottom: 150px;
-      left: 50%;
-      width: 28px;
-      height: 22px;
-      transform: translateX(-50%);
-      background: transparent;
-      border: 2px solid #7a8a9a;
-      border-radius: 10px 10px 10px 6px;
-    }
-
-    .windmill .rotor {
-      position: absolute;
-      bottom: 160px;
-      left: 50%;
-      width: 14px;
-      height: 14px;
-      transform: translateX(-50%);
-      background: transparent;
-      border: 2px solid #7a8a9a;
-      border-radius: 50%;
-      animation: spin 12s linear infinite;
-    }
-
-    .windmill .blade {
-      position: absolute;
-      left: 50%;
-      bottom: 50%;
-      width: 10px;
-      height: 58px;
-      transform-origin: center bottom;
-      background: transparent;
-      border: 2px solid #7a8a9a;
-      border-radius: 8px;
-    }
-
-    .windmill .blade-1 { transform: translate(-50%, 0) rotate(0deg); }
-    .windmill .blade-2 { transform: translate(-50%, 0) rotate(90deg); }
-    .windmill .blade-3 { transform: translate(-50%, 0) rotate(180deg); }
-    .windmill .blade-4 { transform: translate(-50%, 0) rotate(270deg); }
-
-    @keyframes spin {
-      from { transform: translateX(-50%) rotate(0deg); }
-      to { transform: translateX(-50%) rotate(360deg); }
-    }
-
-    .hill {
-      position: absolute;
-      bottom: 28%;
-      width: 380px;
-      height: 150px;
-      background: var(--hill-1);
-      border-radius: 50% 50% 0 0;
-      box-shadow: inset 0 10px 16px rgba(255, 255, 255, 0.5);
-      filter: drop-shadow(0 12px 20px rgba(120, 130, 140, 0.15));
-    }
-    .hill-2 {
-      bottom: 23%;
-      left: 48%;
-      width: 460px;
-      height: 170px;
-      background: var(--hill-2);
-    }
-    .hill-1 { left: 10%; }
-
-    .truck {
-      position: absolute;
-      bottom: 30%;
-      width: 96px;
-      height: 36px;
-      background: #d7dde4;
-      border-radius: 10px;
-      box-shadow: 0 8px 16px rgba(80, 100, 120, 0.18);
-      opacity: 0.85;
-    }
-
-    .truck .cab {
-      position: absolute;
-      right: 8px;
-      bottom: 12px;
-      width: 30px;
-      height: 20px;
-      background: #eef3f8;
-      border-radius: 6px 10px 6px 6px;
-      box-shadow: inset 0 0 0 1px rgba(120, 140, 160, 0.3);
-    }
-
-    .truck .wheel {
-      position: absolute;
-      bottom: -6px;
-      width: 16px;
-      height: 16px;
-      background: #4b5562;
-      border-radius: 50%;
-      box-shadow: inset 0 0 0 3px #9aa3ad;
-    }
-
-    .truck .wheel.left { left: 16px; }
-    .truck .wheel.right { right: 18px; }
-
-    .truck-1 { left: 58%; transform: scale(0.85); }
-    .truck-2 {
-      left: 70%;
-      bottom: 32%;
-      transform: scale(0.7);
-      opacity: 0.75;
-      background: #cdd7df;
-    }
-
-    .field-texture {
-      position: absolute;
-      inset: 52% 0 0 0;
-      background:
-        repeating-linear-gradient(
-          90deg,
-          rgba(180, 200, 210, 0.25),
-          rgba(180, 200, 210, 0.25) 1px,
-          transparent 1px,
-          transparent 18px
-        ),
-        linear-gradient(180deg, transparent 0%, rgba(200, 220, 230, 0.2) 100%);
-      opacity: 0.7;
-      pointer-events: none;
-    }
-
-    .plant-plot {
-      position: absolute;
-      left: 50%;
-      bottom: 16%;
-      width: 280px;
-      height: 230px;
-      transform: translateX(-50%);
       display: flex;
-      align-items: flex-end;
-      justify-content: center;
-    }
-
-    .soil {
-      position: absolute;
-      bottom: 0;
-      left: 10%;
-      width: 80%;
-      height: 28px;
-      background: linear-gradient(180deg, rgba(138, 117, 101, 0.9), rgba(120, 100, 88, 0.96));
-      border-radius: 60% 60% 40% 40%;
-      box-shadow: inset 0 6px 12px rgba(0, 0, 0, 0.16);
-    }
-
-    .plant {
-      position: relative;
-      width: 160px;
-      height: 190px;
-    }
-
-    .stem {
-      position: absolute;
-      left: 50%;
-      bottom: 24px;
-      width: 14px;
-      height: 132px;
-      background: linear-gradient(180deg, #7a9a8a 0%, var(--stem) 100%);
-      border-radius: 12px;
-      transform: translateX(-50%);
-      box-shadow: inset 0 -8px 12px rgba(0, 0, 0, 0.18);
-    }
-
-    .leaf {
-      position: absolute;
-      width: 96px;
-      height: 50px;
-      background: linear-gradient(120deg, var(--leaf) 0%, var(--leaf-dark) 100%);
-      border-radius: 100% 60% 60% 100%;
-      top: 58%;
-      filter: drop-shadow(0 10px 16px rgba(90, 110, 120, 0.18));
-    }
-
-    .leaf::after {
-      content: "";
-      position: absolute;
-      inset: 12px 38% 12px 12px;
-      background: rgba(255, 255, 255, 0.16);
-      border-radius: 40%;
-      filter: blur(0.2px);
-    }
-
-    .leaf.left {
-      right: 50%;
-      transform: translate(8px, 6px) rotate(-18deg);
-    }
-
-    .leaf.right {
-      left: 50%;
-      transform: translate(-8px, -6px) rotate(18deg);
-    }
-
-    .bud {
-      position: absolute;
-      left: 50%;
-      bottom: 142px;
-      width: 60px;
-      height: 56px;
-      transform: translateX(-50%);
-      background: radial-gradient(circle at 50% 50%, #ffe566 0 18%, #fff4d0 18% 40%, #f9bcd8 40% 70%, #e0609e 70% 100%);
-      border-radius: 50%;
-      box-shadow: 0 10px 24px rgba(224, 96, 158, 0.3);
-    }
-
-    .bud::after {
-      content: "";
-      position: absolute;
-      left: 50%;
-      bottom: -14px;
-      width: 18px;
-      height: 26px;
-      transform: translateX(-50%);
-      background: #8ccc82;
-      border-radius: 50% 50% 60% 60%;
-      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
-    }
-
-    .title-card {
-      position: absolute;
-      top: 18px;
-      left: 18px;
-      padding: 12px 14px;
-      background: rgba(255, 255, 255, 0.85);
-      border-radius: 12px;
-      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.4);
-      border: 1px solid rgba(180, 200, 220, 0.5);
-      max-width: 240px;
-      font-weight: 700;
-      letter-spacing: 0.01em;
-    }
-
-    .title-card small {
-      display: block;
-      color: var(--muted);
-      font-weight: 600;
-      margin-top: 6px;
-    }
-
-    .board {
-      position: absolute;
-      left: 18px;
-      bottom: 18px;
-      width: min(360px, 90vw);
-      background: rgba(255, 255, 255, 0.85);
-      border-radius: 14px;
-      box-shadow: 0 14px 28px rgba(0, 0, 0, 0.15);
-      border: 1px solid rgba(180, 200, 220, 0.5);
-      overflow: hidden;
-      transition: transform 0.2s ease, opacity 0.2s ease;
-      cursor: pointer;
-    }
-
-    .board header {
-      display: block;
-      padding: 10px 12px;
-      font-weight: 700;
-      letter-spacing: 0.01em;
-      color: var(--text);
-      border-bottom: 1px solid rgba(180, 200, 220, 0.3);
-      background: rgba(240, 245, 250, 0.9);
-    }
-
-    .messages {
-      list-style: none;
-      padding: 10px 12px 12px;
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      font-size: 14px;
-    }
-
-    .message {
-      display: grid;
-      grid-template-columns: auto 1fr;
-      column-gap: 8px;
-      row-gap: 2px;
       align-items: center;
+      justify-content: center;
+      padding: 32px;
     }
-
-    .message .author {
-      font-weight: 700;
-      color: #5a8a7a;
+    .wrap {
+      width: min(720px, 100%);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 28px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
     }
-
-    .message .text {
-      grid-column: 1 / -1;
+    h1 {
+      font-family: "Orbitron", ui-monospace, monospace;
+      letter-spacing: 0.18em;
+      color: var(--accent);
+      margin-bottom: 16px;
+      text-transform: uppercase;
+    }
+    p {
+      color: var(--dim);
+      margin-bottom: 24px;
+      line-height: 1.6;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+    }
+    a.card {
+      display: block;
+      text-decoration: none;
       color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 14px;
+      background: rgba(255,255,255,0.02);
+      transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
     }
-
-    .message .timestamp {
-      color: var(--muted);
-      font-size: 12px;
+    a.card:hover {
+      border-color: var(--accent2);
+      box-shadow: 0 0 20px rgba(32,160,232,0.2);
+      transform: translateY(-2px);
     }
-
-    .board.collapsed {
-      transform: translateY(8px) scale(0.96);
-      opacity: 0.75;
+    .card .label {
+      font-family: "Orbitron", ui-monospace, monospace;
+      font-size: 0.85rem;
+      letter-spacing: 0.12em;
+      color: var(--accent2);
+      margin-bottom: 6px;
+      text-transform: uppercase;
     }
-
-    .board.collapsed .messages { display: none; }
-    .board.collapsed header { border-bottom: none; }
-
-    @media (max-width: 720px) {
-      .scene { aspect-ratio: 4 / 5; }
-      .plant-plot { bottom: 18%; }
-      .sun { width: 90px; height: 90px; }
-      .cloud { transform: scale(0.82); }
-      .hill { width: 280px; }
-      .hill-2 { width: 320px; left: 44%; }
-      .title-card { font-size: 14px; }
+    .card .desc {
+      font-size: 0.75rem;
+      color: var(--dim);
+      line-height: 1.5;
     }
   </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet" />
 </head>
 <body>
-  <div class="scene">
-    <div class="grain" aria-hidden="true"></div>
-    <div class="sun" aria-hidden="true"></div>
-    <div class="cloud cloud-1" aria-hidden="true"></div>
-    <div class="cloud cloud-2" aria-hidden="true"></div>
-    <div class="cloud cloud-3" aria-hidden="true"></div>
-    <div class="hill hill-1" aria-hidden="true"></div>
-    <div class="hill hill-2" aria-hidden="true"></div>
-
-    <div class="truck truck-1" aria-hidden="true">
-      <span class="cab"></span>
-      <span class="wheel left"></span>
-      <span class="wheel right"></span>
-    </div>
-    <div class="truck truck-2" aria-hidden="true">
-      <span class="cab"></span>
-      <span class="wheel left"></span>
-      <span class="wheel right"></span>
-    </div>
-
-    <div class="windmill" aria-hidden="true">
-      <div class="tower"></div>
-      <div class="head"></div>
-      <div class="rotor">
-        <span class="blade blade-1"></span>
-        <span class="blade blade-2"></span>
-        <span class="blade blade-3"></span>
-        <span class="blade blade-4"></span>
-      </div>
-    </div>
-    <div class="field-texture" aria-hidden="true"></div>
-
-    <div class="title-card">
-      Quiet field
-      <small>One plant watched over at a time.</small>
-    </div>
-
-    <div class="plant-plot" aria-hidden="true">
-      <div class="bee" aria-hidden="true"></div>
-      <div class="plant">
-        <div class="stem"></div>
-        <div class="leaf left"></div>
-        <div class="leaf right"></div>
-        <div class="bud"></div>
-      </div>
-      <div class="soil"></div>
-    </div>
-
-    <div class="board" id="message-board">
-      <header>Central message board</header>
-      <ul class="messages" id="messages">
-        <li class="message">Loading messages...</li>
-      </ul>
+  <div class="wrap">
+    <h1>Suites</h1>
+    <p>Vibe-coded experiments. Pick a project:</p>
+    <div class="grid">
+      <a class="card" href="/quietfield/">
+        <div class="label">Quietfield</div>
+        <div class="desc">Ambient field interactions and calm UI experiments.</div>
+      </a>
+      <a class="card" href="/dustfall/">
+        <div class="label">Dustfall</div>
+        <div class="desc">Colony sim dashboard with events, resources, and map play.</div>
+      </a>
+      <a class="card" href="/sandy-acres/">
+        <div class="label">Sandy Acres</div>
+        <div class="desc">New single-page build in the sandy-acres suite.</div>
+      </a>
     </div>
   </div>
-
-  <script>
-    async function loadMessages() {
-      const list = document.getElementById('messages');
-      try {
-        const response = await fetch('/api/messages');
-        if (!response.ok) throw new Error('Request failed');
-        const data = await response.json();
-        const messages = data.messages || [];
-
-        list.innerHTML = '';
-        if (messages.length === 0) {
-          list.innerHTML = '<li class="message">No messages yet.</li>';
-          return;
-        }
-
-        messages.forEach((msg) => {
-          const item = document.createElement('li');
-          item.className = 'message';
-
-          const author = document.createElement('span');
-          author.className = 'author';
-          author.textContent = msg.author;
-
-          const timestamp = document.createElement('span');
-          timestamp.className = 'timestamp';
-          timestamp.textContent = msg.timestamp;
-
-          const text = document.createElement('span');
-          text.className = 'text';
-          text.textContent = msg.text;
-
-          item.appendChild(author);
-          item.appendChild(timestamp);
-          item.appendChild(text);
-          list.appendChild(item);
-        });
-      } catch (err) {
-        list.innerHTML = '<li class="message">Could not fetch the board right now.</li>';
-      }
-    }
-
-    function setupBoardToggle() {
-      const board = document.getElementById('message-board');
-      board.addEventListener('click', () => {
-        board.classList.toggle('collapsed');
-      });
-    }
-
-    loadMessages();
-    setupBoardToggle();
-  </script>
 </body>
 </html>

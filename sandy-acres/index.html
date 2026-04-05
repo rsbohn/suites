@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sandy Acres — an idle farming game</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #1c1a14;
+    color: #e8e0cc;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 12px 40px;
+  }
+
+  #game {
+    width: 100%;
+    max-width: 580px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* Title */
+  #title-bar { text-align: center; padding: 4px 0 6px; }
+  #title-bar h1 {
+    font-size: 28px;
+    font-weight: 600;
+    color: #e8e0cc;
+    letter-spacing: 0.04em;
+  }
+  #title-bar h1 span { color: #7CBA4A; }
+  #title-bar p { font-size: 12px; color: #8a8060; margin-top: 3px; letter-spacing: 0.08em; text-transform: uppercase; }
+
+  /* Top stat bar */
+  #top-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .stat-chip {
+    background: #2a2820;
+    border: 0.5px solid #3a3828;
+    border-radius: 8px;
+    padding: 5px 12px;
+    font-size: 13px;
+    color: #8a8060;
+  }
+  .stat-chip strong { color: #e8e0cc; font-weight: 500; }
+  .speed-row { display: flex; align-items: center; gap: 6px; }
+  .speed-btn {
+    padding: 4px 10px; font-size: 12px; cursor: pointer;
+    border-radius: 8px; border: 0.5px solid #3a3828;
+    background: #2a2820; color: #8a8060;
+    transition: background 0.15s, color 0.15s;
+  }
+  .speed-btn:hover { background: #333020; }
+  .speed-btn.active { background: #1a3a10; border-color: #4a8a28; color: #7CBA4A; }
+
+  /* Chyron */
+  #chyron-wrap {
+    background: #0e1e0e;
+    border-radius: 6px;
+    overflow: hidden;
+    display: flex;
+    align-items: stretch;
+    height: 28px;
+    border: 0.5px solid #2a4a2a;
+  }
+  #chyron-label {
+    background: #2d5a10;
+    color: #a0d060;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 0 10px;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    flex-shrink: 0;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  #chyron-ticker { flex: 1; overflow: hidden; position: relative; }
+  #chyron-text {
+    position: absolute;
+    white-space: nowrap;
+    font-size: 12px;
+    color: #c0e080;
+    line-height: 28px;
+    will-change: transform;
+  }
+
+  /* Canvas */
+  #farm-canvas {
+    display: block;
+    width: 100%;
+    image-rendering: pixelated;
+    border-radius: 10px;
+    border: 0.5px solid #3a3828;
+  }
+
+  /* Bottom panels */
+  #bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .panel {
+    background: #22201a;
+    border: 0.5px solid #3a3828;
+    border-radius: 10px;
+    padding: 10px 12px;
+  }
+  .panel h3 {
+    font-size: 11px;
+    font-weight: 500;
+    color: #6a6040;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  .price-row {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 13px; padding: 3px 0;
+    border-bottom: 0.5px solid #2e2c22;
+  }
+  .price-row:last-child { border-bottom: none; }
+  .price-row span:first-child { color: #c8c0a8; }
+  .price-val { font-weight: 500; color: #e8e0cc; }
+  .up { color: #7CBA4A; } .down { color: #c05030; } .same { color: #6a6040; }
+
+  .shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .seed-btn {
+    background: #2a2820; border: 0.5px solid #3a3828;
+    border-radius: 8px; padding: 6px 8px; font-size: 12px;
+    cursor: pointer; text-align: left;
+    transition: background 0.15s, border-color 0.15s;
+    color: #c8c0a8;
+  }
+  .seed-btn:hover { background: #1a3a10; border-color: #4a8a28; }
+  .seed-btn .sname { font-weight: 500; color: #e8e0cc; font-size: 12px; }
+  .seed-btn .scost { color: #6a6040; font-size: 11px; }
+  .seed-btn .scount { float: right; font-size: 11px; color: #7CBA4A; font-weight: 500; }
+
+  .sell-btn {
+    width: 100%; margin-top: 8px; padding: 7px; font-size: 13px;
+    font-weight: 500; cursor: pointer; border-radius: 8px;
+    border: 0.5px solid #3a7020;
+    background: #1a3a10; color: #7CBA4A;
+    transition: background 0.15s;
+  }
+  .sell-btn:hover { background: #224a18; }
+
+  .log { font-size: 11px; color: #6a6040; margin-top: 6px; min-height: 28px; line-height: 1.5; }
+
+  /* Debug panel */
+  #debug-panel {
+    background: #22201a; border: 0.5px solid #3a3828;
+    border-radius: 10px; padding: 10px 12px;
+  }
+  #debug-panel h3 {
+    font-size: 11px; font-weight: 500; color: #6a6040;
+    margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.06em;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  #debug-panel h3 button {
+    font-size: 11px; font-weight: 400; padding: 2px 8px; cursor: pointer;
+    border-radius: 6px; border: 0.5px solid #3a3828;
+    background: #2a2820; color: #6a6040; text-transform: none; letter-spacing: 0;
+  }
+  #debug-panel h3 button:hover { color: #c8c0a8; }
+  #debug-log {
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 11px; color: #6a6040; line-height: 1.6;
+    height: 120px; overflow-y: auto;
+    background: #181610; border-radius: 6px; padding: 8px 10px;
+  }
+  #debug-log .entry { display: flex; gap: 10px; }
+  #debug-log .ts { color: #3a3828; flex-shrink: 0; }
+  #debug-log .crop-wheat   { color: #c89030; }
+  #debug-log .crop-carrot  { color: #c05030; }
+  #debug-log .crop-corn    { color: #a07020; }
+  #debug-log .crop-tomato  { color: #c03030; }
+  #debug-log .crop-pumpkin { color: #a04810; }
+
+  /* Footer */
+  footer {
+    margin-top: 24px;
+    font-size: 11px;
+    color: #3a3828;
+    text-align: center;
+    letter-spacing: 0.04em;
+  }
+
+  @media (max-width: 480px) {
+    #bottom { grid-template-columns: 1fr; }
+    #title-bar h1 { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+<div id="game">
+  <div id="title-bar">
+    <h1>Sandy <span>Acres</span></h1>
+    <p>an idle farming game</p>
+  </div>
+
+  <div id="top-bar">
+    <div class="stat-chip">💰 <strong id="gold-disp">$25</strong></div>
+    <div class="stat-chip">🌾 <strong id="harvest-disp">0</strong> harvested</div>
+    <div class="stat-chip">📅 Day <strong id="day-disp">1</strong></div>
+    <div class="speed-row">
+      <button class="speed-btn active" onclick="setSpeed(1)">1×</button>
+      <button class="speed-btn" onclick="setSpeed(2)">2×</button>
+      <button class="speed-btn" onclick="setSpeed(4)">4×</button>
+    </div>
+  </div>
+
+  <div id="chyron-wrap">
+    <div id="chyron-label">Sandy Acres Local</div>
+    <div id="chyron-ticker"><div id="chyron-text">Loading local news...</div></div>
+  </div>
+
+  <canvas id="farm-canvas"></canvas>
+
+  <div id="bottom">
+    <div class="panel">
+      <h3>Market prices</h3>
+      <div id="price-list"></div>
+      <div class="log" id="log-msg">Surveying Sandy Acres...</div>
+    </div>
+    <div class="panel">
+      <h3>Shop — buy seeds</h3>
+      <div class="shop-grid" id="shop-grid"></div>
+      <button class="sell-btn" onclick="sellAll()">Sell all harvest</button>
+    </div>
+  </div>
+
+  <div id="debug-panel">
+    <h3>Debug log — harvests <button onclick="clearLog()">Clear</button></h3>
+    <div id="debug-log"></div>
+  </div>
+</div>
+
+<footer>Sandy Acres &nbsp;·&nbsp; a game about patience and pumpkins</footer>
+
+<script>
+const COLS = 20, ROWS = 12, TS = 28;
+const PLANT_BEFORE_HARVEST = 12;
+
+const canvas = document.getElementById('farm-canvas');
+const ctx = canvas.getContext('2d');
+canvas.width = COLS * TS;
+canvas.height = ROWS * TS;
+
+const TILE = { DIRT:0, TREE:1, ROCK:2, WATER:3, CROP:4 };
+
+const SEEDS = [
+  { id:'wheat',   name:'Wheat',   emoji:'🌾', growTime:55,  seedCost:3,  basePrice:6,  price:6,  owned:5 },
+  { id:'carrot',  name:'Carrot',  emoji:'🥕', growTime:90,  seedCost:5,  basePrice:10, price:10, owned:3 },
+  { id:'corn',    name:'Corn',    emoji:'🌽', growTime:140, seedCost:9,  basePrice:16, price:16, owned:0 },
+  { id:'tomato',  name:'Tomato',  emoji:'🍅', growTime:200, seedCost:14, basePrice:26, price:26, owned:0 },
+  { id:'pumpkin', name:'Pumpkin', emoji:'🎃', growTime:300, seedCost:20, basePrice:42, price:42, owned:0 },
+];
+
+let gold = 25, totalHarvested = 0, day = 1, tick = 0, gameSpeed = 1;
+let harvest = {}; SEEDS.forEach(s => harvest[s.id] = 0);
+let logMsg = 'Surveying Sandy Acres...';
+let plantsThisCycle = 0, harvestMode = false, plantRobinIdx = 0;
+
+// ── Chyron ───────────────────────────────────────────────────────
+const CHYRON_POOL = [
+  "Pumpkin prices expected to surge ahead of autumn festival",
+  "Local agronomist warns: 'This soil has opinions'",
+  "Wheat yields up 12% — farmers cautiously optimistic",
+  "Rain forecast delayed again; crops waiting patiently",
+  "Sandy Acres named 'Most Procedurally Generated Farm' three years running",
+  "Carrot surplus leads to creative cooking competition downtown",
+  "New study finds crops grow faster when farmer takes breaks",
+  "Corn futures volatile following unexplained field geometry incident",
+  "Tomato blight reported three counties over — officials unconcerned",
+  "Regional seed bank opens; pumpkin section already full",
+  "Farmers advised to sell high, buy low — market experts say more research needed",
+  "Annual Scarecrow Census returns inconclusive results",
+  "Neighbour's rooster reportedly running for local office",
+  "Old Herschel seen talking to the rocks again — 'They listen,' he says",
+  "Mysterious lights spotted over the eastern field; taste of corn ruled out as cause",
+  "Mrs. Bellamy's prize tomato disqualified — judges cite 'unsettling symmetry'",
+  "The well behind Gunderson's barn has started humming. It does not stop.",
+  "Local man claims his scarecrow winked at him. Scarecrow unavailable for comment.",
+  "Strange footprints found near water's edge — too large for raccoon, too small for concern",
+  "Crows refuse to enter the north field. Farmers refuse to ask why.",
+  "Someone has been rearranging the rocks at night. The rocks seem pleased.",
+  "A second moon was briefly observed last Tuesday. Town council tabling discussion.",
+  "Irrigation ditch reportedly flowing uphill since Wednesday — engineer 'looking into it'",
+  "The Fenwick family reports their wheat is growing in a perfect spiral. They are selling tickets.",
+  "Fog rolled in last night and left a smell of cinnamon. Dogs are fine. Fish are not.",
+  "Local beekeeper says the bees 'know something.' Declined to elaborate.",
+  "Three pumpkins reported missing from Hargrove farm; found arranged in town square at dawn",
+  "Fishing competition cancelled after lake 'appeared to reconsider its position'",
+  "Soil samples sent to university; lab 'not ready to share findings yet'",
+  "New family moved into the old Pratchett place. Very quiet. No shadows.",
+  "County extension office reports a 40% increase in 'unexplained harvest' filings",
+  "The old mill wheel started turning again. There is no water near the old mill.",
+  "Children warned not to play near the eastern trees after dark. Trees seem indifferent.",
+  "Bruce Kellerman spotted in the area, allegedly 'researching a follow-up review'",
+  "Retired postman Gus claims letter delivered to address that does not exist. Letter was accepted.",
+  "Market prices fluctuating wildly — analysts blame 'vibes'",
+  "Sandy Acres farmer spotted fishing on a work day. No comment from management.",
+];
+
+let chyronQueue = [], chyronX = 0;
+const chyronEl = () => document.getElementById('chyron-text');
+const chyronTickerEl = () => document.getElementById('chyron-ticker');
+
+function shuffled(arr) { return [...arr].sort(() => Math.random() - 0.5); }
+function buildChyronString() {
+  if (chyronQueue.length < 8) chyronQueue = [...chyronQueue, ...shuffled(CHYRON_POOL)];
+  return chyronQueue.splice(0, 8).join('   ///   ') + '   ///   ';
+}
+function initChyron() {
+  chyronQueue = shuffled(CHYRON_POOL);
+  chyronEl().textContent = buildChyronString();
+  chyronX = chyronTickerEl().offsetWidth;
+  requestAnimationFrame(tickChyron);
+}
+function tickChyron() {
+  const el = chyronEl(), ticker = chyronTickerEl();
+  chyronX -= 0.6 * gameSpeed;
+  if (chyronX < -el.scrollWidth) { el.textContent = buildChyronString(); chyronX = ticker.offsetWidth; }
+  el.style.transform = `translateX(${chyronX}px)`;
+  requestAnimationFrame(tickChyron);
+}
+
+// ── Grid generation ───────────────────────────────────────────────
+function rnd(a, b) { return Math.floor(Math.random() * (b - a + 1)) + a; }
+
+const grid = Array.from({length: ROWS}, () =>
+  Array.from({length: COLS}, () => ({ type: TILE.DIRT, crop: null }))
+);
+for (let r = 1; r < ROWS-1; r++) for (let c = 1; c < COLS-1; c++) {
+  const v = Math.random();
+  if      (v < 0.14) grid[r][c] = { type: TILE.TREE };
+  else if (v < 0.22) grid[r][c] = { type: TILE.ROCK };
+  else if (v < 0.28) grid[r][c] = { type: TILE.WATER };
+}
+function clusterize(type, num) {
+  for (let i = 0; i < num; i++) {
+    const cr = rnd(2,ROWS-3), cc = rnd(2,COLS-3);
+    for (let dr=-1;dr<=1;dr++) for (let dc=-1;dc<=1;dc++) {
+      const nr=cr+dr, nc=cc+dc;
+      if (nr>=1&&nr<=ROWS-2&&nc>=1&&nc<=COLS-2&&Math.random()<0.65) grid[nr][nc]={type};
+    }
+  }
+}
+clusterize(TILE.WATER,2); clusterize(TILE.TREE,3); clusterize(TILE.ROCK,2);
+for (let r=0;r<ROWS;r++) { grid[r][0]={type:TILE.DIRT,crop:null}; grid[r][COLS-1]={type:TILE.DIRT,crop:null}; }
+for (let c=0;c<COLS;c++) { grid[0][c]={type:TILE.DIRT,crop:null}; grid[ROWS-1][c]={type:TILE.DIRT,crop:null}; }
+
+// Farmer start position
+const farmer = { r:Math.floor(ROWS/2), c:Math.floor(COLS/2), px:0, py:0 };
+outer: for (let d=0;d<ROWS;d++) {
+  for (const [rr,cc] of [[farmer.r+d,farmer.c],[farmer.r-d,farmer.c],[farmer.r,farmer.c+d],[farmer.r,farmer.c-d]]) {
+    if (rr>=0&&rr<ROWS&&cc>=0&&cc<COLS&&grid[rr][cc].type===TILE.DIRT) {
+      farmer.r=rr; farmer.c=cc; farmer.px=cc*TS+TS/2; farmer.py=rr*TS+TS/2; break outer;
+    }
+  }
+}
+
+function findFishingSpots() {
+  const spots=[], D=[[-1,0],[1,0],[0,-1],[0,1]];
+  for (let r=0;r<ROWS;r++) for (let c=0;c<COLS;c++) {
+    if (grid[r][c].type!==TILE.DIRT&&grid[r][c].type!==TILE.CROP) continue;
+    for (const [dr,dc] of D) {
+      const nr=r+dr,nc=c+dc;
+      if (nr>=0&&nr<ROWS&&nc>=0&&nc<COLS&&grid[nr][nc].type===TILE.WATER){spots.push({r,c,wr:nr,wc:nc});break;}
+    }
+  }
+  return spots;
+}
+const allFishingSpots = findFishingSpots();
+
+// ── Pathfinding ───────────────────────────────────────────────────
+const DIRS = [[-1,0],[1,0],[0,-1],[0,1]];
+function isWalkable(r,c) {
+  if (r<0||r>=ROWS||c<0||c>=COLS) return false;
+  return grid[r][c].type===TILE.DIRT||grid[r][c].type===TILE.CROP;
+}
+function floodFind(matchFn, maxCount) {
+  const visited=Array.from({length:ROWS},()=>new Uint8Array(COLS));
+  visited[farmer.r][farmer.c]=1;
+  const queue=[[farmer.r,farmer.c]], found=[];
+  let head=0;
+  while (head<queue.length&&found.length<maxCount) {
+    const [r,c]=queue[head++];
+    if ((r!==farmer.r||c!==farmer.c)&&matchFn(r,c)) found.push([r,c]);
+    for (const [dr,dc] of DIRS) {
+      const nr=r+dr,nc=c+dc;
+      if (!visited[nr]?.[nc]&&isWalkable(nr,nc)){visited[nr][nc]=1;queue.push([nr,nc]);}
+    }
+  }
+  return found;
+}
+function findPath(sr,sc,tr,tc) {
+  if (sr===tr&&sc===tc) return null;
+  const prev=Array.from({length:ROWS},()=>Array(COLS).fill(null));
+  const visited=Array.from({length:ROWS},()=>new Uint8Array(COLS));
+  visited[sr][sc]=1;
+  const queue=[[sr,sc]]; let head=0,found=false;
+  while (head<queue.length) {
+    const [r,c]=queue[head++];
+    if (r===tr&&c===tc){found=true;break;}
+    for (const [dr,dc] of DIRS) {
+      const nr=r+dr,nc=c+dc;
+      if (!visited[nr]?.[nc]&&isWalkable(nr,nc)){visited[nr][nc]=1;prev[nr][nc]=[r,c];queue.push([nr,nc]);}
+    }
+  }
+  if (!found) return null;
+  const path=[]; let r=tr,c=tc;
+  while (r!==sr||c!==sc){path.unshift([r,c]);[r,c]=prev[r][c];}
+  return path.length>0?path:null;
+}
+
+// ── Farmer AI ─────────────────────────────────────────────────────
+let farmerPath=[],farmerPathIdx=0,farmerAction=null,actionCooldown=0,idleWait=0;
+let fishingDay=false,fishingTick=0,fishingDuration=0,fishingSpot=null;
+const FISHING_MESSAGES=['Gone fishing','Taking the day off','Fishing — do not disturb','Waiting for a bite...','Lines in the water','A well-earned rest'];
+
+function chooseSeedToPlant() {
+  const available=SEEDS.filter(s=>s.owned>0);
+  if (!available.length) return null;
+  for (let i=0;i<SEEDS.length;i++){const s=SEEDS[plantRobinIdx%SEEDS.length];plantRobinIdx++;if(s.owned>0)return s;}
+  return available[0];
+}
+function autoBuy() {
+  const lacking=SEEDS.filter(s=>gold>=s.seedCost&&s.owned===0).sort((a,b)=>b.seedCost-a.seedCost);
+  for (const s of lacking) if(gold>=s.seedCost){gold-=s.seedCost;s.owned+=3;logMsg=`Bought ${s.emoji} ${s.name} seeds`;}
+  const low=SEEDS.filter(s=>gold>=s.seedCost&&s.owned>0&&s.owned<2).sort((a,b)=>b.seedCost-a.seedCost);
+  for (const s of low) if(gold>=s.seedCost){gold-=s.seedCost;s.owned+=3;logMsg=`Restocked ${s.emoji} ${s.name} seeds`;break;}
+}
+function countRipeCrops(){
+  let n=0;
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++)
+    if(grid[r][c].type===TILE.CROP&&grid[r][c].crop&&grid[r][c].crop.grown>=grid[r][c].crop.growTime) n++;
+  return n;
+}
+function startFishingDay(){
+  fishingDay=true;fishingTick=0;fishingDuration=rnd(180,320);
+  farmerPath=[];farmerPathIdx=0;farmerAction=null;
+  const reachable=allFishingSpots.filter(s=>findPath(farmer.r,farmer.c,s.r,s.c)!==null);
+  if(reachable.length>0){
+    fishingSpot=reachable[Math.floor(Math.random()*reachable.length)];
+    const path=findPath(farmer.r,farmer.c,fishingSpot.r,fishingSpot.c);
+    if(path){farmerPath=path;farmerPathIdx=0;}
+  } else fishingSpot={r:farmer.r,c:farmer.c,wr:farmer.r,wc:farmer.c};
+  logMsg=FISHING_MESSAGES[Math.floor(Math.random()*FISHING_MESSAGES.length)];
+}
+function pickTask(){
+  farmerPath=[];farmerPathIdx=0;farmerAction=null;
+  const bareDirt=floodFind((r,c)=>grid[r][c].type===TILE.DIRT&&!grid[r][c].crop,1);
+  const ripeCount=countRipeCrops();
+  if(!harvestMode&&(plantsThisCycle>=PLANT_BEFORE_HARVEST||bareDirt.length===0)){harvestMode=true;logMsg=`Planted ${plantsThisCycle} — time to harvest!`;}
+  if(harvestMode&&ripeCount===0){harvestMode=false;plantsThisCycle=0;autoBuy();logMsg='Back to planting...';}
+  if(harvestMode){
+    const ripe=floodFind((r,c)=>grid[r][c].type===TILE.CROP&&grid[r][c].crop&&grid[r][c].crop.grown>=grid[r][c].crop.growTime,1);
+    if(ripe.length){
+      const [tr,tc]=ripe[0],path=findPath(farmer.r,farmer.c,tr,tc);
+      if(path){farmerPath=path;farmerAction={type:'harvest',r:tr,c:tc};logMsg=`Harvesting (${ripeCount} ripe)...`;return;}
+    }
+    logMsg='Waiting for crops to ripen...';
+  } else {
+    autoBuy();
+    const seedToPlant=chooseSeedToPlant();
+    if(seedToPlant&&bareDirt.length){
+      const [tr,tc]=bareDirt[0],path=findPath(farmer.r,farmer.c,tr,tc);
+      if(path){farmerPath=path;farmerAction={type:'plant',r:tr,c:tc,seedId:seedToPlant.id};logMsg=`Planting ${seedToPlant.emoji} ${seedToPlant.name} (${plantsThisCycle+1}/${PLANT_BEFORE_HARVEST})`;return;}
+    }
+    if(!seedToPlant) logMsg=gold<SEEDS[0].seedCost?`Need $${SEEDS[0].seedCost} — sell harvest!`:'No seeds — waiting...';
+    else if(!bareDirt.length){harvestMode=true;logMsg='Field full — switching to harvest!';}
+  }
+  const spots=floodFind((r,c)=>grid[r][c].type===TILE.DIRT,50);
+  if(spots.length){
+    const [tr,tc]=spots[Math.floor(Math.random()*spots.length)];
+    const path=findPath(farmer.r,farmer.c,tr,tc);
+    if(path) farmerPath=path;
+  }
+}
+
+// ── Debug log ─────────────────────────────────────────────────────
+const harvestTotals={}; SEEDS.forEach(s=>harvestTotals[s.id]=0);
+const debugEntries=[];
+function debugLog(seedId,r,c){
+  const seed=SEEDS.find(s=>s.id===seedId);
+  debugEntries.push({day,tick,seedId,name:seed.name,emoji:seed.emoji,r,c,total:++harvestTotals[seedId]});
+  if(debugEntries.length>200) debugEntries.shift();
+  renderDebugLog();
+}
+function renderDebugLog(){
+  const el=document.getElementById('debug-log');
+  el.innerHTML=debugEntries.slice().reverse().map(e=>{
+    const time=`day ${String(e.day).padStart(3,' ')} t${String(e.tick).padStart(5,' ')}`;
+    const loc=`[${String(e.r).padStart(2,' ')},${String(e.c).padStart(2,' ')}]`;
+    return `<div class="entry"><span class="ts">${time}</span><span class="crop-${e.seedId}">${e.emoji} ${e.name.padEnd(7,' ')} ${loc}  #${e.total}</span></div>`;
+  }).join('');
+}
+function clearLog(){debugEntries.length=0;SEEDS.forEach(s=>harvestTotals[s.id]=0);renderDebugLog();}
+
+// ── Farmer step ───────────────────────────────────────────────────
+function stepFarmer(){
+  if(actionCooldown>0){actionCooldown--;return;}
+  if(fishingDay){
+    if(farmerPathIdx<farmerPath.length){
+      const [nr,nc]=farmerPath[farmerPathIdx++];
+      if(!isWalkable(nr,nc)){farmerPath=[];farmerPathIdx=0;}
+      else{farmer.r=nr;farmer.c=nc;farmer.px=nc*TS+TS/2;farmer.py=nr*TS+TS/2;}
+      return;
+    }
+    fishingTick++;
+    if(fishingTick>=fishingDuration){fishingDay=false;fishingSpot=null;logMsg='Back to work at Sandy Acres!';pickTask();}
+    return;
+  }
+  if(farmerPathIdx<farmerPath.length){
+    const [nr,nc]=farmerPath[farmerPathIdx++];
+    if(!isWalkable(nr,nc)){farmerPath=[];farmerPathIdx=0;farmerAction=null;return;}
+    farmer.r=nr;farmer.c=nc;farmer.px=nc*TS+TS/2;farmer.py=nr*TS+TS/2;
+    if(farmerPathIdx===farmerPath.length&&farmerAction){
+      const {type,r,c,seedId}=farmerAction;
+      if(type==='harvest'){
+        const cell=grid[r][c];
+        if(cell.type===TILE.CROP&&cell.crop&&cell.crop.grown>=cell.crop.growTime){
+          harvest[cell.crop.id]=(harvest[cell.crop.id]||0)+1;totalHarvested++;
+          const seed=SEEDS.find(s=>s.id===cell.crop.id);
+          debugLog(cell.crop.id,r,c);
+          logMsg=`Harvested ${seed.emoji} ${seed.name}!`;
+          cell.type=TILE.DIRT;cell.crop=null;actionCooldown=6;
+        }
+      } else if(type==='plant'){
+        const cell=grid[r][c];
+        const seedToUse=(seedId&&SEEDS.find(s=>s.id===seedId&&s.owned>0))||chooseSeedToPlant();
+        if(seedToUse&&cell.type===TILE.DIRT&&!cell.crop){
+          cell.type=TILE.CROP;cell.crop={id:seedToUse.id,grown:0,growTime:seedToUse.growTime};
+          seedToUse.owned--;plantsThisCycle++;
+          logMsg=`Planted ${seedToUse.emoji} ${seedToUse.name} (${plantsThisCycle}/${PLANT_BEFORE_HARVEST})`;
+          actionCooldown=5;
+        }
+      }
+      farmerPath=[];farmerPathIdx=0;farmerAction=null;
+    }
+    return;
+  }
+  idleWait++;
+  if(idleWait>=6){idleWait=0;pickTask();}
+}
+
+function growCrops(){
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++)
+    if(grid[r][c].type===TILE.CROP&&grid[r][c].crop&&grid[r][c].crop.grown<grid[r][c].crop.growTime)
+      grid[r][c].crop.grown++;
+}
+function updatePrices(){
+  SEEDS.forEach(s=>{
+    const d=(Math.random()-0.47)*s.basePrice*0.22;
+    s.price=Math.max(Math.round(s.basePrice*0.4),Math.min(Math.round(s.basePrice*2.8),Math.round(s.price+d)));
+  });
+}
+function sellAll(){
+  let earned=0;
+  SEEDS.forEach(s=>{earned+=(harvest[s.id]||0)*s.price;harvest[s.id]=0;});
+  if(earned>0){gold+=earned;logMsg=`Sold harvest for $${earned}!`;}else logMsg='Nothing to sell yet.';
+}
+function setSpeed(v){
+  gameSpeed=v;
+  document.querySelectorAll('.speed-btn').forEach(b=>b.classList.toggle('active',b.textContent===v+'×'));
+}
+function manualBuy(i){
+  const s=SEEDS[i];
+  if(gold>=s.seedCost){gold-=s.seedCost;s.owned+=3;logMsg=`Bought 3× ${s.name} seeds`;}
+  else logMsg=`Need $${s.seedCost} for seeds`;
+}
+
+// ── Drawing ────────────────────────────────────────────────────────
+const DIRT_C  = ['#C9A96E','#C2A265','#D1AC73'];
+const WATER_C = ['#4A90D9','#3A82CC','#56A0E8'];
+const LEAF_C  = ['#3A6B48','#2D5A3D','#448A5A'];
+const ROCK_C  = ['#787878','#686868','#909090'];
+let bobberPhase = 0;
+
+function drawTile(r,c){
+  const cell=grid[r][c],x=c*TS,y=r*TS,ci=(r*3+c*7)%3;
+  ctx.fillStyle=DIRT_C[ci];ctx.fillRect(x,y,TS,TS);
+  if(cell.type===TILE.WATER){
+    ctx.fillStyle=WATER_C[ci];ctx.fillRect(x,y,TS,TS);
+    ctx.fillStyle='rgba(255,255,255,0.15)';
+    ctx.fillRect(x+3,y+TS*0.35,TS-6,3);ctx.fillRect(x+5,y+TS*0.62,TS-10,2);
+  } else if(cell.type===TILE.TREE){
+    ctx.fillStyle='#5C3D1E';ctx.fillRect(x+TS*0.4,y+TS*0.62,TS*0.2,TS*0.33);
+    ctx.fillStyle=LEAF_C[ci];ctx.beginPath();ctx.arc(x+TS/2,y+TS*0.38,TS*0.36,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=LEAF_C[(ci+1)%3];ctx.beginPath();ctx.arc(x+TS*0.37,y+TS*0.46,TS*0.2,0,Math.PI*2);ctx.fill();
+  } else if(cell.type===TILE.ROCK){
+    ctx.fillStyle=ROCK_C[ci];ctx.beginPath();ctx.ellipse(x+TS/2,y+TS*0.58,TS*0.38,TS*0.26,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle=ROCK_C[2];ctx.beginPath();ctx.ellipse(x+TS*0.43,y+TS*0.46,TS*0.22,TS*0.14,-0.3,0,Math.PI*2);ctx.fill();
+  } else if(cell.type===TILE.CROP&&cell.crop){
+    const seed=SEEDS.find(s=>s.id===cell.crop.id);
+    const prog=Math.min(1,cell.crop.grown/cell.crop.growTime);
+    ctx.fillStyle='#4A8A28';ctx.fillRect(x+TS*0.46,y+TS*(prog<0.4?0.54:0.28),3,TS*(prog<0.4?0.36:0.62));
+    if(prog>=0.3){
+      ctx.fillStyle='#6EB84A';
+      ctx.fillRect(x+TS*0.27,y+TS*(prog<0.6?0.5:0.42),TS*0.19,4);
+      ctx.fillRect(x+TS*0.52,y+TS*(prog<0.6?0.6:0.52),TS*0.21,4);
+    }
+    if(prog>=0.7){
+      ctx.font=`${Math.floor(TS*0.56)}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(seed.emoji,x+TS/2,y+TS*0.33);
+    }
+    if(prog>=1){ctx.fillStyle='rgba(255,215,0,0.95)';ctx.beginPath();ctx.arc(x+TS*0.8,y+TS*0.2,4.5,0,Math.PI*2);ctx.fill();}
+    ctx.fillStyle='rgba(0,0,0,0.22)';ctx.fillRect(x+2,y+TS-5,TS-4,3);
+    ctx.fillStyle=prog>=1?'#FFD700':'#6EB84A';
+    ctx.fillRect(x+2,y+TS-5,Math.round((TS-4)*prog),3);
+  }
+}
+function drawFarmerFishing(){
+  const px=farmer.px,py=farmer.py,spot=fishingSpot;
+  ctx.fillStyle='rgba(0,0,0,0.18)';ctx.beginPath();ctx.ellipse(px,py+TS*0.28,TS*0.22,TS*0.07,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#264653';ctx.fillRect(px-TS*0.18,py+TS*0.1,TS*0.36,TS*0.14);
+  ctx.fillRect(px-TS*0.18,py+TS*0.22,TS*0.14,TS*0.1);ctx.fillRect(px+TS*0.04,py+TS*0.22,TS*0.14,TS*0.1);
+  ctx.fillStyle='#457B9D';ctx.fillRect(px-TS*0.18,py-TS*0.12,TS*0.36,TS*0.26);
+  ctx.fillStyle='#F4A261';ctx.beginPath();ctx.arc(px,py-TS*0.25,TS*0.17,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#8B5E3C';ctx.fillRect(px-TS*0.24,py-TS*0.38,TS*0.48,5);ctx.fillRect(px-TS*0.15,py-TS*0.54,TS*0.3,TS*0.18);
+  if(spot){
+    const angle=Math.atan2(spot.wr-farmer.r,spot.wc-farmer.c),rodLen=TS*1.6;
+    const rx=px+Math.cos(angle)*TS*0.1,ry=py-TS*0.1;
+    const tipX=rx+Math.cos(angle-0.4)*rodLen,tipY=ry+Math.sin(angle-0.4)*rodLen;
+    ctx.strokeStyle='#8B5E3C';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(rx,ry);ctx.lineTo(tipX,tipY);ctx.stroke();
+    const waterX=spot.wc*TS+TS/2,waterY=spot.wr*TS+TS/2;
+    ctx.strokeStyle='rgba(150,200,255,0.7)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(tipX,tipY);ctx.lineTo(waterX,waterY);ctx.stroke();
+    const bob=Math.sin(bobberPhase)*2;
+    ctx.fillStyle='#E63946';ctx.beginPath();ctx.arc(waterX,waterY+bob,4,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(waterX,waterY+bob,4,Math.PI,Math.PI*2);ctx.fill();
+    ctx.strokeStyle='#333';ctx.lineWidth=0.5;ctx.beginPath();ctx.arc(waterX,waterY+bob,4,0,Math.PI*2);ctx.stroke();
+  }
+  ctx.lineWidth=1;
+}
+function drawFarmerWorking(){
+  const px=farmer.px,py=farmer.py;
+  ctx.fillStyle='rgba(0,0,0,0.18)';ctx.beginPath();ctx.ellipse(px,py+TS*0.25,TS*0.2,TS*0.07,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#264653';ctx.fillRect(px-TS*0.14,py+TS*0.14,TS*0.12,TS*0.22);ctx.fillRect(px+TS*0.02,py+TS*0.14,TS*0.12,TS*0.22);
+  ctx.fillStyle='#457B9D';ctx.fillRect(px-TS*0.18,py-TS*0.14,TS*0.36,TS*0.32);
+  ctx.fillStyle='#F4A261';ctx.beginPath();ctx.arc(px,py-TS*0.25,TS*0.17,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#8B5E3C';ctx.fillRect(px-TS*0.24,py-TS*0.38,TS*0.48,5);ctx.fillRect(px-TS*0.15,py-TS*0.54,TS*0.3,TS*0.18);
+}
+
+function render(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) drawTile(r,c);
+  if(fishingDay) drawFarmerFishing(); else drawFarmerWorking();
+  document.getElementById('gold-disp').textContent='$'+gold;
+  document.getElementById('harvest-disp').textContent=totalHarvested;
+  document.getElementById('day-disp').textContent=day;
+  document.getElementById('log-msg').textContent=logMsg;
+  document.getElementById('price-list').innerHTML=SEEDS.map(s=>{
+    const h=harvest[s.id]||0;
+    const trend=s.price>s.basePrice*1.05?'▲':s.price<s.basePrice*0.95?'▼':'–';
+    const cls=trend==='▲'?'up':trend==='▼'?'down':'same';
+    return `<div class="price-row"><span>${s.emoji} ${s.name}${h>0?` <span style="font-size:11px;color:#5a5838">(${h})</span>`:''}</span><span class="price-val">$${s.price} <span class="${cls}" style="font-size:11px">${trend}</span></span></div>`;
+  }).join('');
+  document.getElementById('shop-grid').innerHTML=SEEDS.map((s,i)=>
+    `<button class="seed-btn" onclick="manualBuy(${i})"><span class="scount">×${s.owned}</span><div class="sname">${s.emoji} ${s.name}</div><div class="scost">$${s.seedCost}/3 seeds</div></button>`
+  ).join('');
+}
+
+// ── Main loop ──────────────────────────────────────────────────────
+let dayTimer = 0;
+const DAY_TICKS = 240;
+
+function gameLoop(){
+  for(let i=0;i<gameSpeed;i++){
+    tick++;bobberPhase+=0.04;
+    if(tick%5===0) stepFarmer();
+    if(tick%4===0) growCrops();
+    if(++dayTimer>=DAY_TICKS){dayTimer=0;day++;updatePrices();if(!fishingDay&&day>2&&Math.random()<0.2)startFishingDay();}
+  }
+  render();
+  requestAnimationFrame(gameLoop);
+}
+
+pickTask();
+gameLoop();
+initChyron();
+</script>
+</body>
+</html>
