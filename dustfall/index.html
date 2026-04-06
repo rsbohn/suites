@@ -259,8 +259,21 @@
     margin-bottom: 6px;
     cursor: pointer;
     transition: border-color 0.2s;
+    border-left: 4px solid var(--dim);
   }
   .colonist-card:hover, .colonist-card.selected { border-color: var(--accent2); }
+  .colonist-card.task-idle { border-left-color: var(--dim); }
+  .colonist-card.task-hunt { border-left-color: var(--accent); }
+  .colonist-card.task-chop { border-left-color: #7bcf6a; }
+  .colonist-card.task-mine { border-left-color: #b0b9c6; }
+  .colonist-card.task-build { border-left-color: #f2c879; }
+  .colonist-card.task-trade { border-left-color: #75c7ff; }
+  .colonist-card.task-scout { border-left-color: #b08cff; }
+  .colonist-card.task-plant { border-left-color: #5ad1a3; }
+  .colonist-card.task-fire { border-left-color: var(--danger); }
+  .colonist-card.task-art { border-left-color: #d0a0ff; }
+  .colonist-card.task-game { border-left-color: #ff9b6a; }
+  .colonist-card.task-book { border-left-color: #f5b4e2; }
   .col-name {
     font-size: 0.82rem;
     color: var(--accent2);
@@ -716,7 +729,7 @@
 
 <!-- Info Toast -->
 <div id="info-toast">
-  <div class="ach-label">⬡ Visitor Notice</div>
+  <div class="ach-label" id="info-label">⬡ Visitor Notice</div>
   <div class="ach-title" id="info-title"></div>
   <div class="ach-desc" id="info-desc"></div>
 </div>
@@ -890,10 +903,15 @@ const EVENTS = [
   },
   {
     id:'harvest', title:'🌾 BOUNTIFUL HARVEST',
+    silent: true,
     desc:'Your foragers found a rich food source!',
     choices: [
-      { text:'Collect it all (+20🍖)', effect: s => { s.res.food+=20; log('Collected a bountiful harvest!','good'); } },
-      { text:'Leave some for later', effect: s => { s.res.food+=10; log('Collected a moderate harvest.','info'); } },
+      { text:'auto', effect: s => {
+        const gain = 20;
+        s.res.food += gain;
+        log(`Collected a bountiful harvest! (+${gain}🍖)`, 'good');
+        showInfoToast('Bountiful Harvest', `Foragers returned with extra food. (+${gain}🍖)`, 'Harvest Report');
+      } },
     ]
   },
   {
@@ -1288,13 +1306,30 @@ function healRandomColonist(s) {
 }
 
 // ===== RENDER UI =====
+function getTaskClass(task) {
+  const t = task.toLowerCase();
+  if (t.includes('hunting')) return 'task-hunt';
+  if (t.includes('chopping')) return 'task-chop';
+  if (t.includes('mining')) return 'task-mine';
+  if (t.includes('build')) return 'task-build';
+  if (t.includes('trade')) return 'task-trade';
+  if (t.includes('scouting')) return 'task-scout';
+  if (t.includes('plant')) return 'task-plant';
+  if (t.includes('fire')) return 'task-fire';
+  if (t.includes('sculpt')) return 'task-art';
+  if (t.includes('playing') || t.includes('racing') || t.includes('singing') || t.includes('card') || t.includes('story') || t.includes('sparring') || t.includes('target')) return 'task-game';
+  if (t.includes('writing')) return 'task-book';
+  return 'task-idle';
+}
+
 function renderColonists() {
   const list = document.getElementById('colonist-list');
   list.innerHTML = '';
   document.querySelector('#acc-colonists .accord-header span:first-child').textContent = `⬡ Colonists (${state.colonists.length})`;
   state.colonists.forEach(col => {
     const card = document.createElement('div');
-    card.className = 'colonist-card';
+    const taskClass = getTaskClass(col.task);
+    card.className = `colonist-card ${taskClass}`;
     card.innerHTML = `
       <div class="col-name">${col.name} <span style="font-size:0.65rem;color:var(--dim)">[${col.skill}]</span></div>
       <div class="col-task">${col.task}</div>
@@ -1513,9 +1548,10 @@ function triggerRandomEvent() {
   // Special-case: newcomers get handled by toast once colony is established
   if (evt.id === 'newcomer' && state.colonists.length >= 5) {
     const mealCost = 6;
+    const visitorName = ctx.name || 'A stranger';
     state.res.food = Math.max(0, state.res.food - mealCost);
-    log(`A stranger arrived. The colony offered food and sent them onward. (-${mealCost}🍖)`, 'info');
-    showInfoToast('Stranger at the Gates', 'The colony shared a meal and sent the visitor on their way.');
+    log(`${visitorName} arrived at the gates. The colony offered food and sent them onward. (-${mealCost}🍖)`, 'info');
+    showInfoToast('Stranger at the Gates', `${visitorName} was fed and sent on their way.`);
     renderAll();
     return;
   }
@@ -1901,8 +1937,9 @@ function showAchievement(title, desc) {
   setTimeout(() => toast.classList.remove('show'), 5000);
 }
 
-function showInfoToast(title, desc) {
+function showInfoToast(title, desc, label = 'Visitor Notice') {
   const toast = document.getElementById('info-toast');
+  document.getElementById('info-label').textContent = '⬡ ' + label;
   document.getElementById('info-title').textContent = title;
   document.getElementById('info-desc').textContent = desc;
   toast.classList.add('show');
