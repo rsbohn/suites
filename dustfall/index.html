@@ -715,8 +715,14 @@
 <div id="chyron">
   <span id="chyron-label">⬡ COLONY NEWS</span>
   <div id="chyron-rows">
-    <div class="chyron-track"><span class="chyron-text" id="chyron-text-0"></span></div>
-    <div class="chyron-track"><span class="chyron-text" id="chyron-text-1"></span></div>
+    <div class="chyron-track">
+      <span class="chyron-text" id="chyron-text-0-0"></span>
+      <span class="chyron-text" id="chyron-text-0-1"></span>
+    </div>
+    <div class="chyron-track">
+      <span class="chyron-text" id="chyron-text-1-0"></span>
+      <span class="chyron-text" id="chyron-text-1-1"></span>
+    </div>
   </div>
 </div>
 
@@ -1825,6 +1831,7 @@ function renderAll() {
   renderDay();
   renderMap();
   checkReforestation();
+  checkAshfall();
 }
 
 // ===== SPEED =====
@@ -1865,11 +1872,11 @@ const CHYRON_JOKES = [
 
 const chyronQueues = [[], []];
 const chyronAnimating = [false, false];
+const chyronSlots = [0, 0];
 
 function queueChyron(msg, priority) {
   const item = { msg, day: state.day, priority: priority || 0 };
-  // Pick the lane with fewer items; prefer lane 0
-  const lane = chyronQueues[0].length <= chyronQueues[1].length ? 0 : 1;
+  const lane = item.priority > 0 ? 0 : 1;
   const q = chyronQueues[lane];
   if (item.priority > 0) {
     const idx = q.findIndex(i => i.priority === 0);
@@ -1890,7 +1897,8 @@ function runChyron(lane) {
   chyronAnimating[lane] = true;
 
   const item = q.shift();
-  const el = document.getElementById('chyron-text-' + lane);
+  chyronSlots[lane] = (chyronSlots[lane] + 1) % 2;
+  const el = document.getElementById('chyron-text-' + lane + '-' + chyronSlots[lane]);
   const track = el.parentElement;
   el.style.color = item.priority > 0 ? 'var(--danger)' : 'var(--text)';
   el.textContent = '⬡  ' + item.msg + '     ';
@@ -1904,7 +1912,7 @@ function runChyron(lane) {
       const duration = (trackW + textW) / 80;
       el.style.transition = `left ${duration}s linear`;
       el.style.left = '-' + textW + 'px';
-      setTimeout(() => runChyron(lane), duration * 1000);
+      setTimeout(() => runChyron(lane), duration * 1000 * 0.5);
     });
   });
 }
@@ -1954,6 +1962,17 @@ function checkReforestation() {
   if (trees.length / eligible.length >= 0.8) {
     state.achievements.reforestation = true;
     showAchievement('🌲 Reforestation', 'At least 80% of viable land is covered in mature trees.');
+  }
+}
+
+function checkAshfall() {
+  if (state.achievements.ashfall) return;
+  const eligible = state.tiles.filter(t => t.type !== 'rock' && t.type !== 'water');
+  if (!eligible.length) return;
+  const ash = eligible.filter(t => t.type === 'ash');
+  if (ash.length / eligible.length >= 0.8) {
+    state.achievements.ashfall = true;
+    showAchievement('🌫 Ashfall', 'At least 80% of viable land is covered in ash.');
   }
 }
 
