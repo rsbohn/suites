@@ -175,6 +175,19 @@
     box-shadow: 0 0 4px var(--accent2);
     animation: colonist-bob 1.5s infinite ease-in-out;
   }
+  .tile .robot-dot {
+    position: absolute;
+    width: 8px; height: 8px;
+    background: var(--accent);
+    border-radius: 2px;
+    top: 2px; left: 2px;
+    box-shadow: 0 0 6px var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.5rem;
+    z-index: 12;
+  }
   @keyframes colonist-bob {
     0%,100% { transform: translateY(0); }
     50% { transform: translateY(-2px); }
@@ -570,6 +583,9 @@
   .artifact-name { color: var(--accent); margin-bottom: 2px; }
   .artifact-effect { color: var(--dim); font-size: 0.66rem; }
 
+  .status-good { color: var(--success); font-weight: bold; }
+  .status-bad { color: var(--danger); font-weight: bold; }
+
   /* CHYRON */
   #chyron {
     display: flex;
@@ -690,6 +706,14 @@
       </div>
       <div class="accord-body">
         <div id="artifact-list"><span style="color:var(--dim);font-size:0.72rem">No artifacts yet.</span></div>
+      </div>
+    </div>
+    <div class="accord-section" id="acc-robot">
+      <div class="accord-header" onclick="toggleAccord('acc-robot')">
+        <span>⬡ Robot Status</span><span class="accord-arrow">▾</span>
+      </div>
+      <div class="accord-body">
+        <div id="robot-status-content"><span style="color:var(--dim);font-size:0.72rem">No robot found.</span></div>
       </div>
     </div>
     <div class="accord-section" id="acc-log">
@@ -925,10 +949,68 @@ const EVENTS = [
     desc:'A violent storm is approaching. Prepare your colony!',
     choices: [
       { text:'Reinforce shelters (5🪵)', effect: s => { if(s.res.wood>=5){s.res.wood-=5;s.shelters=Math.min(5,s.shelters+1);log('Shelters reinforced. Storm passed safely.','good');}else{injureRandomColonist(s);log('No wood to reinforce — colonists exposed!','danger');} clearAshAfterStorm(); } },
-      { text:'Ride it out', effect: s => { if(Math.random()<0.4){log('The storm missed you. Lucky!','good');}else{s.res.food-=10;log('Storm damaged food stores.','warn');} clearAshAfterStorm(); } },
-    ]
-  },
-];
+      { text: 'Ride it out', effect: s => { if(Math.random()<0.4){log('The storm missed you. Lucky!','good');}else{s.res.food-=10;log('Storm damaged food stores.','warn');} clearAshAfterStorm(); } },
+      ]
+      },
+      {
+      id:'broken-bot', title:'🤖 ANCIENT CONSTRUCT',
+      desc: 'While exploring a peripheral ridge, your colonists found a weathered, inactive robot half-buried in the dust. It looks mostly intact but needs a specialist.',
+      choices: [
+      { text: 'Recover it', effect: s => {
+        if (!s.robot) {
+          const centerIdx = Math.floor(MAP_H / 2) * MAP_W + Math.floor(MAP_W / 2);
+          s.robot = {
+            tileIdx: centerIdx,
+            functional: false,
+            condition: 'Broken',
+            name: 'Unit-7'
+          };
+          log('Recovered a broken robot. It has been brought to the colony center.', 'good');
+        } else {
+          log('You found parts to maintain Unit-7.', 'info');
+        }
+      }}
+      ]
+      },
+      {
+      id:'wandering-mechanic', title:'🔧 WANDERING TINKERER',
+      desc: function() {
+      if (!state.robot) return { text: 'A traveler with a bag of heavy tools arrives. They offer to sell some scrap metal.' };
+      if (state.robot.condition === 'Broken') return { text: 'A wandering mechanic spots the inactive Unit-7. "I can get this thing moving again, for a price," they offer.' };
+      return { text: 'The mechanic returns. "Want to tune up Unit-7? I can make it more efficient."' };
+      },
+      choices: [
+      { text: 'Repair/Upgrade (15⚙)', effect: s => {
+        if (s.res.metal >= 15) {
+          s.res.metal -= 15;
+          if (!s.robot) {
+            log('The tinkerer sold you some rare parts (+5⚙).', 'good');
+            s.res.metal += 5;
+          } else if (s.robot.condition === 'Broken') {
+            s.robot.functional = true;
+            s.robot.condition = 'Functional';
+            log('The mechanic repaired Unit-7! It hums to life and starts wandering the fields.', 'good');
+          } else {
+            s.robot.condition = 'Optimized';
+            log('The mechanic optimized Unit-7. Its presence is even more inspiring.', 'good');
+          }
+        } else {
+          log('Not enough metal!', 'warn');
+        }
+      }},
+      { text: 'Buy Scrap (5🍖 → 3⚙)', effect: s => {
+        if (s.res.food >= 5) {
+          s.res.food -= 5;
+          s.res.metal += 3;
+          log('Traded food for scrap metal.', 'info');
+        } else {
+          log('Not enough food!', 'warn');
+        }
+      }},
+      { text: 'Send them away', effect: s => { log('You declined the tinkerer\'s services.', 'info'); } }
+      ]
+      },
+      ];
 
 // ===== MONUMENTS =====
 const MONUMENT_NAMES = [
@@ -1268,6 +1350,18 @@ function renderMap() {
     dot.title = col.name;
     el.appendChild(dot);
   });
+
+  // Place Robot on tile
+  if (state.robot) {
+    const el = els[state.robot.tileIdx];
+    if (el) {
+      const dot = document.createElement('div');
+      dot.className = 'robot-dot';
+      dot.textContent = '🤖';
+      dot.title = `ROBOT: ${state.robot.name} (${state.robot.condition})`;
+      el.appendChild(dot);
+    }
+  }
 }
 
 // ===== COLONISTS =====
@@ -1717,6 +1811,20 @@ function gameTick() {
     }
   });
 
+  // Robot movement
+  if (state.robot && state.robot.functional) {
+    const neighbors = getNeighbors(state.robot.tileIdx);
+    const target = neighbors[Math.floor(Math.random() * neighbors.length)];
+    state.robot.tileIdx = target;
+    // Boost mood of any colonist on the same tile
+    state.colonists.forEach(col => {
+      if (col.tileIdx === target) {
+        const boost = state.robot.condition === 'Optimized' ? 10 : 5;
+        col.mood = Math.min(100, col.mood + boost);
+      }
+    });
+  }
+
   // Fire spread & burnout
   processFires();
 
@@ -1824,10 +1932,28 @@ function renderArtifacts() {
   });
 }
 
+function renderRobotStatus() {
+  const content = document.getElementById('robot-status-content');
+  if (!state.robot) {
+    content.innerHTML = '<span style="color:var(--dim);font-size:0.72rem">No robot found.</span>';
+    return;
+  }
+  const statusClass = state.robot.functional ? 'status-good' : 'status-bad';
+  const boost = state.robot.condition === 'Optimized' ? 10 : 5;
+  content.innerHTML = `
+    <div style="font-size:0.85rem;color:var(--accent);margin-bottom:4px">🤖 ${state.robot.name}</div>
+    <div style="font-size:0.72rem;margin-bottom:6px">Condition: <span class="${statusClass}">${state.robot.condition}</span></div>
+    <div style="font-size:0.65rem;color:var(--dim);line-height:1.4">
+      ${state.robot.functional ? `The unit is wandering the colony, providing +${boost} morale to colonists it visits.` : 'The unit is dormant. It needs specialized repairs to become functional.'}
+    </div>
+  `;
+}
+
 function renderAll() {
   renderResources();
   renderColonists();
   renderArtifacts();
+  renderRobotStatus();
   renderDay();
   renderMap();
   checkReforestation();
@@ -2006,7 +2132,8 @@ function initGame() {
     lastBookYear: -1,
     res: { food: 40, wood: 30, stone: 20, metal: 10, meds: 5 },
     colonists: [],
-    tiles: []
+    tiles: [],
+    robot: null
   };
 
   // Start with 3 colonists
