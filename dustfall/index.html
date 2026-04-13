@@ -1036,6 +1036,60 @@ function getNeighbors(idx) {
   return neighbors;
 }
 
+function getRobotMoveSteps(robot) {
+  if (!robot || !robot.functional) return 0;
+  return robot.condition === 'Optimized' ? 2 : 1;
+}
+
+function chooseRobotTarget(currentIdx) {
+  const neighbors = getNeighbors(currentIdx);
+  if (!neighbors.length) return null;
+  const weights = neighbors.map(idx => state.tiles[idx].type === 'water' ? 1 : 4);
+  const total = weights.reduce((sum, w) => sum + w, 0);
+  let roll = Math.random() * total;
+  for (let i = 0; i < neighbors.length; i++) {
+    roll -= weights[i];
+    if (roll <= 0) return neighbors[i];
+  }
+  return neighbors[neighbors.length - 1];
+}
+
+function robotMineTile(tile) {
+  const stone = 3 + Math.floor(Math.random() * 5);
+  const metal = Math.random() < 0.25 ? 1 + Math.floor(Math.random() * 3) : 0;
+  state.res.stone += stone;
+  if (metal) state.res.metal += metal;
+  log(`🤖 ${state.robot.name} mined ${stone} stone${metal ? ' and ' + metal + ' metal' : ''} from the rocks.`, 'good');
+}
+
+function robotPlantCrop(tile) {
+  const bonus = tile.type === 'ash';
+  const growthDays = bonus ? 15 : 20;
+  tile.crop = { plantedDay: state.day, planter: state.robot.name, growthDays, bonus };
+  log(`🤖 ${state.robot.name} planted crops${bonus ? ' in ash-rich soil' : ''}.`, 'info');
+}
+
+function robotPlantSapling(tile) {
+  tile.sapling = { plantedDay: state.day, planter: state.robot.name };
+  log(`🤖 ${state.robot.name} planted a sapling.`, 'info');
+}
+
+function robotActOnTile(tileIdx) {
+  const tile = state.tiles[tileIdx];
+  if (!tile) return;
+  if (tile.type === 'rock' && !tile.monument) {
+    robotMineTile(tile);
+    return;
+  }
+  if ((tile.type === 'dirt' || tile.type === 'ash') && !tile.crop && !tile.planting) {
+    robotPlantCrop(tile);
+    return;
+  }
+  if (tile.type === 'grass' && !tile.sapling && !tile.planting) {
+    robotPlantSapling(tile);
+  }
+}
+
 function isFlammable(tile) {
   return tile.type === 'grass' || tile.type === 'tree' || tile.crop || tile.sapling || tile.planting;
 }
@@ -1813,16 +1867,20 @@ function gameTick() {
 
   // Robot movement
   if (state.robot && state.robot.functional) {
-    const neighbors = getNeighbors(state.robot.tileIdx);
-    const target = neighbors[Math.floor(Math.random() * neighbors.length)];
-    state.robot.tileIdx = target;
-    // Boost mood of any colonist on the same tile
-    state.colonists.forEach(col => {
-      if (col.tileIdx === target) {
-        const boost = state.robot.condition === 'Optimized' ? 10 : 5;
-        col.mood = Math.min(100, col.mood + boost);
-      }
-    });
+    const steps = getRobotMoveSteps(state.robot);
+    for (let step = 0; step < steps; step++) {
+      const target = chooseRobotTarget(state.robot.tileIdx);
+      if (target == null) break;
+      state.robot.tileIdx = target;
+      robotActOnTile(target);
+      // Boost mood of any colonist on the same tile
+      state.colonists.forEach(col => {
+        if (col.tileIdx === target) {
+          const boost = state.robot.condition === 'Optimized' ? 10 : 5;
+          col.mood = Math.min(100, col.mood + boost);
+        }
+      });
+    }
   }
 
   // Fire spread & burnout
@@ -1940,11 +1998,12 @@ function renderRobotStatus() {
   }
   const statusClass = state.robot.functional ? 'status-good' : 'status-bad';
   const boost = state.robot.condition === 'Optimized' ? 10 : 5;
+  const steps = getRobotMoveSteps(state.robot);
   content.innerHTML = `
     <div style="font-size:0.85rem;color:var(--accent);margin-bottom:4px">🤖 ${state.robot.name}</div>
     <div style="font-size:0.72rem;margin-bottom:6px">Condition: <span class="${statusClass}">${state.robot.condition}</span></div>
     <div style="font-size:0.65rem;color:var(--dim);line-height:1.4">
-      ${state.robot.functional ? `The unit is wandering the colony, providing +${boost} morale to colonists it visits.` : 'The unit is dormant. It needs specialized repairs to become functional.'}
+      ${state.robot.functional ? `Moves up to ${steps} tile${steps !== 1 ? 's' : ''} per day (avoids water when possible), plants on dirt/ash/grass, mines rock, and provides +${boost} morale to colonists it visits.` : 'The unit is dormant. It needs specialized repairs to become functional.'}
     </div>
   `;
 }
