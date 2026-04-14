@@ -792,6 +792,7 @@ const SEASONS = ['SPRING','SUMMER','AUTUMN','WINTER'];
 const YEAR_LENGTH = 80;
 const COLONIST_NAMES = ['Mara','Dex','Kira','Tomas','Yael','Cass','Finn','Ryn','Solis','Brin'];
 const SKILLS = ['Mining','Hunting','Building','Medicine','Cooking'];
+const ROBOT_NAMES = ['Unit-7','Atlas-3','Kestrel-9'];
 
 const BOOK_TITLES = [
   'Ash and Snow',
@@ -957,42 +958,58 @@ const EVENTS = [
       desc: 'While exploring a peripheral ridge, your colonists found a weathered, inactive robot half-buried in the dust. It looks mostly intact but needs a specialist.',
       choices: [
       { text: 'Recover it', effect: s => {
-        if (!s.robot) {
-          const centerIdx = Math.floor(MAP_H / 2) * MAP_W + Math.floor(MAP_W / 2);
-          s.robot = {
-            tileIdx: centerIdx,
-            functional: false,
-            condition: 'Broken',
-            name: 'Unit-7'
-          };
-          log('Recovered a broken robot. It has been brought to the colony center.', 'good');
-        } else {
-          log('You found parts to maintain Unit-7.', 'info');
+        if (!s.robots) s.robots = [];
+        if (s.robots.length >= 2) {
+          log('The colony cannot house another robot right now.', 'info');
+          return;
         }
+        const centerIdx = Math.floor(MAP_H / 2) * MAP_W + Math.floor(MAP_W / 2);
+        const availableNames = ROBOT_NAMES.filter(name => !s.robots.some(robot => robot.name === name));
+        const name = availableNames.length
+          ? availableNames[Math.floor(Math.random() * availableNames.length)]
+          : `Unit-${Math.floor(100 + Math.random() * 900)}`;
+        s.robots.push({
+          tileIdx: centerIdx,
+          functional: false,
+          condition: 'Broken',
+          name
+        });
+        log(`Recovered ${name}, a broken robot. It has been brought to the colony center.`, 'good');
+      }},
+      { text: 'Scrap it (+10⚙)', effect: s => {
+        const gain = 10;
+        s.res.metal += gain;
+        log(`Scrapped the construct for usable metal. (+${gain}⚙)`, 'good');
       }}
       ]
       },
       {
       id:'wandering-mechanic', title:'🔧 WANDERING TINKERER',
       desc: function() {
-      if (!state.robot) return { text: 'A traveler with a bag of heavy tools arrives. They offer to sell some scrap metal.' };
-      if (state.robot.condition === 'Broken') return { text: 'A wandering mechanic spots the inactive Unit-7. "I can get this thing moving again, for a price," they offer.' };
-      return { text: 'The mechanic returns. "Want to tune up Unit-7? I can make it more efficient."' };
+      const robots = state.robots || [];
+      if (!robots.length) return { text: 'A traveler with a bag of heavy tools arrives. They offer to sell some scrap metal.' };
+      const broken = robots.find(robot => robot.condition === 'Broken');
+      if (broken) return { text: `A wandering mechanic spots the inactive ${broken.name}. "I can get this thing moving again, for a price," they offer.` };
+      return { text: `The mechanic returns. "Want to tune up ${robots[0].name}? I can make it more efficient."` };
       },
       choices: [
       { text: 'Repair/Upgrade (15⚙)', effect: s => {
         if (s.res.metal >= 15) {
           s.res.metal -= 15;
-          if (!s.robot) {
+          if (!s.robots || !s.robots.length) {
             log('The tinkerer sold you some rare parts (+5⚙).', 'good');
             s.res.metal += 5;
-          } else if (s.robot.condition === 'Broken') {
-            s.robot.functional = true;
-            s.robot.condition = 'Functional';
-            log('The mechanic repaired Unit-7! It hums to life and starts wandering the fields.', 'good');
           } else {
-            s.robot.condition = 'Optimized';
-            log('The mechanic optimized Unit-7. Its presence is even more inspiring.', 'good');
+            const broken = s.robots.find(robot => robot.condition === 'Broken');
+            if (broken) {
+              broken.functional = true;
+              broken.condition = 'Functional';
+              log(`The mechanic repaired ${broken.name}! It hums to life and starts wandering the fields.`, 'good');
+            } else {
+              const target = s.robots[0];
+              target.condition = 'Optimized';
+              log(`The mechanic optimized ${target.name}. Its presence is even more inspiring.`, 'good');
+            }
           }
         } else {
           log('Not enough metal!', 'warn');
@@ -1054,39 +1071,39 @@ function chooseRobotTarget(currentIdx) {
   return neighbors[neighbors.length - 1];
 }
 
-function robotMineTile(tile) {
+function robotMineTile(tile, robot) {
   const stone = 3 + Math.floor(Math.random() * 5);
   const metal = Math.random() < 0.25 ? 1 + Math.floor(Math.random() * 3) : 0;
   state.res.stone += stone;
   if (metal) state.res.metal += metal;
-  log(`🤖 ${state.robot.name} mined ${stone} stone${metal ? ' and ' + metal + ' metal' : ''} from the rocks.`, 'good');
+  log(`🤖 ${robot.name} mined ${stone} stone${metal ? ' and ' + metal + ' metal' : ''} from the rocks.`, 'good');
 }
 
-function robotPlantCrop(tile) {
+function robotPlantCrop(tile, robot) {
   const bonus = tile.type === 'ash';
   const growthDays = bonus ? 15 : 20;
-  tile.crop = { plantedDay: state.day, planter: state.robot.name, growthDays, bonus };
-  log(`🤖 ${state.robot.name} planted crops${bonus ? ' in ash-rich soil' : ''}.`, 'info');
+  tile.crop = { plantedDay: state.day, planter: robot.name, growthDays, bonus };
+  log(`🤖 ${robot.name} planted crops${bonus ? ' in ash-rich soil' : ''}.`, 'info');
 }
 
-function robotPlantSapling(tile) {
-  tile.sapling = { plantedDay: state.day, planter: state.robot.name };
-  log(`🤖 ${state.robot.name} planted a sapling.`, 'info');
+function robotPlantSapling(tile, robot) {
+  tile.sapling = { plantedDay: state.day, planter: robot.name };
+  log(`🤖 ${robot.name} planted a sapling.`, 'info');
 }
 
-function robotActOnTile(tileIdx) {
+function robotActOnTile(tileIdx, robot) {
   const tile = state.tiles[tileIdx];
   if (!tile) return;
   if (tile.type === 'rock' && !tile.monument) {
-    robotMineTile(tile);
+    robotMineTile(tile, robot);
     return;
   }
   if ((tile.type === 'dirt' || tile.type === 'ash') && !tile.crop && !tile.planting) {
-    robotPlantCrop(tile);
+    robotPlantCrop(tile, robot);
     return;
   }
   if (tile.type === 'grass' && !tile.sapling && !tile.planting) {
-    robotPlantSapling(tile);
+    robotPlantSapling(tile, robot);
   }
 }
 
@@ -1405,17 +1422,18 @@ function renderMap() {
     el.appendChild(dot);
   });
 
-  // Place Robot on tile
-  if (state.robot) {
-    const el = els[state.robot.tileIdx];
+  // Place Robots on tiles
+  const robots = state.robots || [];
+  robots.forEach(robot => {
+    const el = els[robot.tileIdx];
     if (el) {
       const dot = document.createElement('div');
       dot.className = 'robot-dot';
       dot.textContent = '🤖';
-      dot.title = `ROBOT: ${state.robot.name} (${state.robot.condition})`;
+      dot.title = `ROBOT: ${robot.name} (${robot.condition})`;
       el.appendChild(dot);
     }
-  }
+  });
 }
 
 // ===== COLONISTS =====
@@ -1866,22 +1884,24 @@ function gameTick() {
   });
 
   // Robot movement
-  if (state.robot && state.robot.functional) {
-    const steps = getRobotMoveSteps(state.robot);
+  const robots = state.robots || [];
+  robots.forEach(robot => {
+    if (!robot.functional) return;
+    const steps = getRobotMoveSteps(robot);
     for (let step = 0; step < steps; step++) {
-      const target = chooseRobotTarget(state.robot.tileIdx);
+      const target = chooseRobotTarget(robot.tileIdx);
       if (target == null) break;
-      state.robot.tileIdx = target;
-      robotActOnTile(target);
+      robot.tileIdx = target;
+      robotActOnTile(target, robot);
       // Boost mood of any colonist on the same tile
       state.colonists.forEach(col => {
         if (col.tileIdx === target) {
-          const boost = state.robot.condition === 'Optimized' ? 10 : 5;
+          const boost = robot.condition === 'Optimized' ? 10 : 5;
           col.mood = Math.min(100, col.mood + boost);
         }
       });
     }
-  }
+  });
 
   // Fire spread & burnout
   processFires();
@@ -1992,20 +2012,25 @@ function renderArtifacts() {
 
 function renderRobotStatus() {
   const content = document.getElementById('robot-status-content');
-  if (!state.robot) {
+  const robots = state.robots || [];
+  if (!robots.length) {
     content.innerHTML = '<span style="color:var(--dim);font-size:0.72rem">No robot found.</span>';
     return;
   }
-  const statusClass = state.robot.functional ? 'status-good' : 'status-bad';
-  const boost = state.robot.condition === 'Optimized' ? 10 : 5;
-  const steps = getRobotMoveSteps(state.robot);
-  content.innerHTML = `
-    <div style="font-size:0.85rem;color:var(--accent);margin-bottom:4px">🤖 ${state.robot.name}</div>
-    <div style="font-size:0.72rem;margin-bottom:6px">Condition: <span class="${statusClass}">${state.robot.condition}</span></div>
-    <div style="font-size:0.65rem;color:var(--dim);line-height:1.4">
-      ${state.robot.functional ? `Moves up to ${steps} tile${steps !== 1 ? 's' : ''} per day (avoids water when possible), plants on dirt/ash/grass, mines rock, and provides +${boost} morale to colonists it visits.` : 'The unit is dormant. It needs specialized repairs to become functional.'}
-    </div>
-  `;
+  content.innerHTML = robots.map(robot => {
+    const statusClass = robot.functional ? 'status-good' : 'status-bad';
+    const boost = robot.condition === 'Optimized' ? 10 : 5;
+    const steps = getRobotMoveSteps(robot);
+    return `
+      <div style="margin-bottom:10px">
+        <div style="font-size:0.85rem;color:var(--accent);margin-bottom:4px">🤖 ${robot.name}</div>
+        <div style="font-size:0.72rem;margin-bottom:6px">Condition: <span class="${statusClass}">${robot.condition}</span></div>
+        <div style="font-size:0.65rem;color:var(--dim);line-height:1.4">
+          ${robot.functional ? `Moves up to ${steps} tile${steps !== 1 ? 's' : ''} per day (avoids water when possible), plants on dirt/ash/grass, mines rock, and provides +${boost} morale to colonists it visits.` : 'The unit is dormant. It needs specialized repairs to become functional.'}
+        </div>
+      </div>
+    `;
+  }).join('');
 }
 
 function renderAll() {
@@ -2192,7 +2217,7 @@ function initGame() {
     res: { food: 40, wood: 30, stone: 20, metal: 10, meds: 5 },
     colonists: [],
     tiles: [],
-    robot: null
+    robots: []
   };
 
   // Start with 3 colonists
