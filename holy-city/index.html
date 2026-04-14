@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aelumont — A Theocratic City Builder</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f5f4f0;color:#1a1a18;min-height:100vh;padding:1rem}
+#app{max-width:900px;margin:0 auto}
+.top-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1rem}
+.res{background:#eeecea;border:0.5px solid rgba(0,0,0,0.12);border-radius:8px;padding:6px 12px;font-size:13px;display:flex;align-items:center;gap:6px}
+.res .val{font-weight:500;font-size:14px}
+.res .rate{color:#666;font-size:11px}
+.city-name{font-size:22px;font-weight:500;color:#1a1a18;margin-bottom:4px}
+.pop-line{font-size:13px;color:#666;margin-bottom:1rem}
+.section-label{font-size:11px;font-weight:500;color:#888;text-transform:uppercase;letter-spacing:.06em;margin:1rem 0 8px}
+.buildings{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;margin-bottom:1rem}
+.bcard{background:#fff;border:0.5px solid rgba(0,0,0,0.12);border-radius:12px;padding:12px;transition:border-color .15s}
+.bcard.locked{opacity:.42}
+.bcard.maxed{border-color:rgba(0,0,0,0.25)}
+.bcard-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+.bcard-icon{font-size:22px;line-height:1}
+.bcard-lvl{font-size:11px;background:#eeecea;border-radius:10px;padding:2px 8px;color:#666}
+.bcard-name{font-size:14px;font-weight:500;margin-bottom:2px}
+.bcard-desc{font-size:11px;color:#666;margin-bottom:8px;line-height:1.5}
+.bcard-prod{font-size:11px;color:#666;margin-bottom:8px}
+.bcard-prod span{color:#1a1a18;font-weight:500}
+.cost-row{font-size:11px;color:#666;margin-bottom:6px}
+.btn{width:100%;background:transparent;border:0.5px solid rgba(0,0,0,0.2);border-radius:8px;padding:6px 0;font-size:12px;cursor:pointer;color:#1a1a18;transition:background .1s}
+.btn:hover:not(:disabled){background:#eeecea}
+.btn:focus-visible{outline:2px solid #5b8dd9;outline-offset:2px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.primary{border-color:#5b8dd9;color:#2a5aa0}
+.log{background:#eeecea;border-radius:8px;padding:10px 14px;font-size:12px;color:#666;height:80px;overflow-y:auto;line-height:1.8}
+.score-bar{display:flex;gap:16px;align-items:center;margin-bottom:1rem;flex-wrap:wrap}
+.score{font-size:18px;font-weight:500}
+.score-lbl{font-size:12px;color:#666}
+.progress-wrap{flex:1;min-width:120px}
+.progress-bg{background:#eeecea;border-radius:4px;height:6px;overflow:hidden}
+.progress-fill{background:#AFA9EC;height:6px;border-radius:4px;transition:width .4s}
+.action-btn{background:transparent;border:0.5px solid rgba(0,0,0,0.2);border-radius:8px;padding:6px 16px;font-size:13px;cursor:pointer;color:#1a1a18}
+.action-btn:hover{background:#eeecea}
+.reset-btn{background:transparent;border:0.5px solid #d9534f;border-radius:8px;padding:6px 14px;font-size:13px;cursor:pointer;color:#c0392b}
+.reset-btn:hover{background:#fdf0ef}
+.confirm-bar{display:none;align-items:center;gap:8px;background:#fdf0ef;border:0.5px solid #d9534f;border-radius:8px;padding:8px 12px;font-size:13px;color:#c0392b;margin-bottom:1rem}
+.confirm-bar.visible{display:flex}
+.confirm-yes{background:transparent;border:0.5px solid #d9534f;border-radius:8px;padding:4px 12px;font-size:12px;cursor:pointer;color:#c0392b}
+.confirm-yes:hover{background:#fff}
+.confirm-no{background:transparent;border:0.5px solid rgba(0,0,0,0.2);border-radius:8px;padding:4px 12px;font-size:12px;cursor:pointer;color:#666}
+.confirm-no:hover{background:#fff}
+.event-card{background:#fff;border:2px solid #AFA9EC;border-radius:12px;padding:14px 16px;margin-bottom:1rem;position:relative;overflow:hidden}
+.event-title{font-size:13px;font-weight:500;color:#1a1a18;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.event-title .evt-icon{font-size:18px}
+.event-timeout-label{font-size:11px;color:#888;margin-left:auto}
+.event-body{font-size:12px;color:#666;margin-bottom:12px;line-height:1.6}
+.event-choices{display:flex;gap:8px;flex-wrap:wrap}
+.evt-btn{flex:1;min-width:120px;background:transparent;border:0.5px solid rgba(0,0,0,0.2);border-radius:8px;padding:7px 10px;font-size:12px;cursor:pointer;color:#1a1a18;text-align:left;line-height:1.4;transition:background .1s}
+.evt-btn:hover{background:#eeecea}
+.evt-btn:focus-visible{outline:2px solid #5b8dd9;outline-offset:2px}
+.evt-btn .choice-label{font-weight:500;display:block;margin-bottom:2px}
+.evt-btn .choice-effect{font-size:11px;color:#666}
+.event-timer-bar{position:absolute;bottom:0;left:0;height:3px;background:#AFA9EC}
+
+@media(prefers-color-scheme:dark){
+  body{background:#1c1c1a;color:#e8e6e0}
+  .bcard,.event-card,.confirm-yes:hover,.confirm-no:hover{background:#2a2a27}
+  .res,.bcard-lvl,.progress-bg,.log,.action-btn:hover,.reset-btn:hover,.evt-btn:hover,.btn:hover:not(:disabled){background:#2e2e2b}
+  .city-name,.bcard-name,.score,.event-title,.evt-btn{color:#e8e6e0}
+  .pop-line,.res .rate,.bcard-desc,.bcard-prod,.cost-row,.score-lbl,.event-body,.evt-btn .choice-effect,.event-timeout-label,.log{color:#999}
+  .bcard-prod span,.bcard .btn{color:#e8e6e0}
+  .bcard,.res,.event-card,.confirm-bar{border-color:rgba(255,255,255,0.1)}
+  .btn{border-color:rgba(255,255,255,0.18);color:#e8e6e0}
+  .btn.primary{border-color:#7a9fd4;color:#a8c4e8}
+  .action-btn{border-color:rgba(255,255,255,0.18);color:#e8e6e0}
+  .reset-btn{border-color:#e57373;color:#ef9a9a}
+  .reset-btn:hover{background:#3a2020}
+  .confirm-bar{background:#3a2020;border-color:#e57373;color:#ef9a9a}
+  .confirm-yes{border-color:#e57373;color:#ef9a9a}
+  .evt-btn{border-color:rgba(255,255,255,0.18)}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:.5rem">
+    <div>
+      <div class="city-name">🕊 The Holy City of Aelumont</div>
+      <div class="pop-line" id="pop-line">Congregation: 0 · Age of Belief</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="action-btn" id="pray-btn">🙏 Pray (+1 faith, +1 timber, +1 food)</button>
+      <button class="reset-btn" id="reset-btn">↺ Reset</button>
+    </div>
+  </div>
+  <div class="confirm-bar" id="confirm-bar">
+    <span style="flex:1">Raze the holy city and begin anew?</span>
+    <button class="confirm-yes" id="confirm-yes">Yes, begin anew</button>
+    <button class="confirm-no" id="confirm-no">Cancel</button>
+  </div>
+  <div class="score-bar">
+    <div><div class="score-lbl">Divine favour</div><div class="score" id="score-val">0</div></div>
+    <div class="progress-wrap">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:#888;margin-bottom:3px">
+        <span id="era-label">Age progress</span><span id="era-pct">0%</span>
+      </div>
+      <div class="progress-bg"><div class="progress-fill" id="era-bar" style="width:0%"></div></div>
+    </div>
+  </div>
+  <div class="top-bar" id="resources"></div>
+  <div id="event-slot"></div>
+  <div class="section-label">Holy works</div>
+  <div class="buildings" id="buildings"></div>
+  <div class="section-label">Annals</div>
+  <div class="log" id="log"></div>
+</div>
+
+<script>
+const ICONS={faith:'✦',timber:'🪵',stone:'🪨',food:'🌾',offerings:'🕯',pilgrims:'🚶'};
+const ERAS=[
+  {name:'Age of Belief',threshold:0},
+  {name:'Age of Devotion',threshold:60},
+  {name:'Age of Piety',threshold:250},
+  {name:'Age of Doctrine',threshold:700},
+  {name:'Age of Saints',threshold:1800},
+];
+const BLDGS=[
+  {id:'shrine',    name:'Wayside Shrine',  icon:'🪨',desc:'A humble stone altar. The faithful leave offerings here.',prod:{faith:1,offerings:1},baseCost:{timber:4,food:3},maxLvl:5,unlock:0,costMult:2.0},
+  {id:'hermitage', name:'Hermitage',        icon:'🏚',desc:'A lone monk tends the land and grows food for the community.',prod:{food:2,faith:1},baseCost:{timber:5,stone:3},maxLvl:5,unlock:0,costMult:2.1},
+  {id:'timberyard',name:'Timberyard',       icon:'🌲',desc:'Lay brothers fell timber for holy construction.',prod:{timber:2},baseCost:{stone:4,food:3},maxLvl:5,unlock:0,costMult:2.0},
+  {id:'quarry',    name:'Stone Quarry',     icon:'⛏', desc:'Extracts stone to raise greater works of God.',prod:{stone:2},baseCost:{timber:6,food:4},maxLvl:5,unlock:0,costMult:2.0},
+  {id:'almshouse', name:'Almshouse',        icon:'🏠',desc:'Feeds and houses pilgrims, swelling your congregation.',prod:{pilgrims:1,food:1},baseCost:{timber:18,stone:12,food:10},maxLvl:4,unlock:1,costMult:2.4},
+  {id:'monastery', name:'Monastery',        icon:'🏛',desc:'Monks pray without ceasing, generating great faith.',prod:{faith:3,offerings:1},baseCost:{stone:25,timber:20,food:12},maxLvl:4,unlock:1,costMult:2.5},
+  {id:'scriptorium',name:'Scriptorium',     icon:'📜',desc:'Illuminated manuscripts spread doctrine far and wide.',prod:{faith:2,offerings:2},baseCost:{timber:35,stone:25,offerings:10},maxLvl:3,unlock:2,costMult:2.8},
+  {id:'belltower', name:'Bell Tower',        icon:'🔔',desc:'The peal of bells calls pilgrims from distant lands.',prod:{pilgrims:2,faith:1},baseCost:{stone:50,timber:30,offerings:15},maxLvl:3,unlock:2,costMult:2.8},
+  {id:'reliquary', name:'Reliquary',         icon:'✦', desc:'Holy relics draw the faithful and fill coffers with offerings.',prod:{offerings:4,faith:2},baseCost:{stone:70,offerings:30,pilgrims:10},maxLvl:3,unlock:3,costMult:3.0},
+  {id:'inquisitors',name:"Inquisitor's Hall",icon:'⚖',desc:'Enforces doctrine. Greatly multiplies divine favour.',prod:{faith:4,offerings:3},baseCost:{stone:90,timber:60,offerings:40,pilgrims:15},maxLvl:3,unlock:3,costMult:3.2},
+  {id:'cathedral', name:'Cathedral',         icon:'⛪',desc:'The great house of worship. A beacon of faith.',prod:{faith:6,offerings:4,pilgrims:2},baseCost:{stone:150,timber:100,offerings:60,food:50},maxLvl:3,unlock:4,costMult:3.5},
+  {id:'basilica',  name:'Grand Basilica',    icon:'🕌',desc:'The earthly throne of the divine. Glory unto the ages.',prod:{faith:10,offerings:6,pilgrims:3},baseCost:{stone:300,timber:200,offerings:120,pilgrims:40},maxLvl:2,unlock:5,costMult:5.0},
+];
+const EVENTS=[
+  {id:'prophet',icon:'🧙',title:'A wandering prophet arrives',body:'He preaches at the city gates. The crowd is rapt. Do you embrace his words or send him away?',
+   choices:[{label:'Embrace him',effect:'+30 faith, −10 pilgrims',apply:r=>{r.faith+=30;r.pilgrims=Math.max(0,r.pilgrims-10);}},{label:'Expel him',effect:'+15 offerings',apply:r=>{r.offerings+=15;}}],
+   timeout:[{label:'He wanders on unheeded.',effect:'Nothing changes.',apply:r=>{}},{label:'A faction follows him into the wilderness.',effect:'−8 pilgrims.',apply:r=>{r.pilgrims=Math.max(0,r.pilgrims-8);}}]},
+  {id:'tribute',icon:'💰',title:'Secular lords offer tribute',body:'Wealthy nobles wish to fund your holy works — in exchange for your blessing of their armies.',
+   choices:[{label:'Accept the tribute',effect:'+40 offerings, −20 faith',apply:r=>{r.offerings+=40;r.faith=Math.max(0,r.faith-20);}},{label:'Refuse their gold',effect:'+25 faith',apply:r=>{r.faith+=25;}}],
+   timeout:[{label:'The lords grow impatient and withdraw.',effect:'Nothing gained.',apply:r=>{}},{label:'A steward quietly accepts a small purse.',effect:'+12 offerings, −5 faith.',apply:r=>{r.offerings+=12;r.faith=Math.max(0,r.faith-5);}}]},
+  {id:'famine',icon:'🌵',title:'Famine grips the outer villages',body:'Refugees crowd the city gates, hungry and desperate. Your granaries are strained.',
+   choices:[{label:'Open the granaries',effect:'−25 food, +20 pilgrims, +15 faith',apply:r=>{r.food=Math.max(0,r.food-25);r.pilgrims+=20;r.faith+=15;}},{label:'Bar the gates',effect:'Food preserved, −15 faith',apply:r=>{r.faith=Math.max(0,r.faith-15);}}],
+   timeout:[{label:'The refugees find shelter elsewhere.',effect:'−8 faith.',apply:r=>{r.faith=Math.max(0,r.faith-8);}},{label:'A monk secretly opens a side gate.',effect:'−10 food, +8 pilgrims.',apply:r=>{r.food=Math.max(0,r.food-10);r.pilgrims+=8;}}]},
+  {id:'relic',icon:'✨',title:'A relic is unearthed',body:"Workers quarrying stone have found what appears to be a saint's bone. Word spreads fast.",
+   choices:[{label:'Enshrine it publicly',effect:'+25 faith, +15 pilgrims',apply:r=>{r.faith+=25;r.pilgrims+=15;}},{label:'Study it quietly',effect:'+30 offerings',apply:r=>{r.offerings+=30;}}],
+   timeout:[{label:'A pilgrim pockets it and flees.',effect:'−5 faith.',apply:r=>{r.faith=Math.max(0,r.faith-5);}},{label:'The relic is quietly enshrined.',effect:'+10 faith.',apply:r=>{r.faith+=10;}}]},
+  {id:'emissary',icon:'🏳',title:'An emissary from a rival city arrives',body:'They speak of uniting under one faith. But their city has its own traditions.',
+   choices:[{label:'Send missionaries',effect:'−15 pilgrims, +40 faith',apply:r=>{r.pilgrims=Math.max(0,r.pilgrims-15);r.faith+=40;}},{label:'Demand submission first',effect:'+20 offerings',apply:r=>{r.offerings+=20;}}],
+   timeout:[{label:'The emissary departs unresolved.',effect:'Nothing changes.',apply:r=>{}},{label:'A junior cleric signs a vague accord.',effect:'+10 faith, +8 offerings.',apply:r=>{r.faith+=10;r.offerings+=8;}}]},
+  {id:'schism',icon:'⚡',title:'A schism stirs within the monastery',body:'Two factions of monks dispute a point of doctrine. Tensions are rising.',
+   choices:[{label:'Rule for orthodoxy',effect:'+20 faith, −10 offerings',apply:r=>{r.faith+=20;r.offerings=Math.max(0,r.offerings-10);}},{label:'Convene a council',effect:'−10 faith, +15 pilgrims',apply:r=>{r.faith=Math.max(0,r.faith-10);r.pilgrims+=15;}}],
+   timeout:[{label:'The schism festers unresolved.',effect:'−15 faith.',apply:r=>{r.faith=Math.max(0,r.faith-15);}},{label:'An elder monk restores order.',effect:'−5 faith.',apply:r=>{r.faith=Math.max(0,r.faith-5);}}]},
+  {id:'harvest',icon:'🌾',title:'An unexpected harvest blessing',body:'The fields have yielded far more than anticipated. The people call it a miracle.',
+   choices:[{label:'Declare a holy feast',effect:'+20 faith, −15 food',apply:r=>{r.faith+=20;r.food=Math.max(0,r.food-15);}},{label:'Store the surplus',effect:'+30 food, +5 faith',apply:r=>{r.food+=30;r.faith+=5;}}],
+   timeout:[{label:'The surplus rots uncelebrated.',effect:'+10 food.',apply:r=>{r.food+=10;}},{label:'The people feast regardless.',effect:'+12 faith, −10 food.',apply:r=>{r.faith+=12;r.food=Math.max(0,r.food-10);}}]},
+  {id:'pilgrimage',icon:'🚶',title:'A great pilgrimage approaches',body:'Thousands are en route to your city. Your almshouses may not be sufficient.',
+   choices:[{label:'Prepare lodgings',effect:'−20 timber, +30 pilgrims',apply:r=>{r.timber=Math.max(0,r.timber-20);r.pilgrims+=30;}},{label:'Let providence provide',effect:'+15 pilgrims',apply:r=>{r.pilgrims+=15;}}],
+   timeout:[{label:'The pilgrims camp outside.',effect:'+10 pilgrims.',apply:r=>{r.pilgrims+=10;}},{label:'Heavy rains scatter the pilgrimage.',effect:'+4 pilgrims.',apply:r=>{r.pilgrims+=4;}}]},
+];
+
+const EVENT_INTERVAL=45;
+const EVENT_TIMEOUT=60;
+
+function freshState(){
+  return {res:{faith:5,timber:5,stone:5,food:10,offerings:0,pilgrims:0},
+    buildings:Object.fromEntries(BLDGS.map(b=>[b.id,0])),
+    tick:0,log:[],score:0,era:0,event:null,eventTick:0,
+    nextEventTick:EVENT_INTERVAL,usedEvents:[]};
+}
+let state=freshState();
+
+function production(){
+  let r={faith:0,timber:0,stone:0,food:0,offerings:0,pilgrims:0};
+  BLDGS.forEach(b=>{const lvl=state.buildings[b.id];if(lvl>0)Object.entries(b.prod).forEach(([k,v])=>{r[k]+=v*lvl;});});
+  return r;
+}
+function calcScore(){
+  let s=0;BLDGS.forEach(b=>{s+=state.buildings[b.id]*(b.unlock+1)*10;});
+  s+=Math.floor(state.res.offerings*0.4)+state.res.pilgrims*4+Math.floor(state.res.faith*0.3);
+  return s;
+}
+function getEra(sc){let e=0;ERAS.forEach((era,i)=>{if(sc>=era.threshold)e=i;});return e;}
+function getCongregation(){
+  return Math.floor(state.buildings.shrine*3+state.buildings.hermitage*4+state.buildings.almshouse*8+
+    state.buildings.monastery*10+state.buildings.scriptorium*6+state.buildings.belltower*12+
+    state.buildings.reliquary*15+state.buildings.inquisitors*8+state.buildings.cathedral*25+
+    state.buildings.basilica*60+state.res.pilgrims*2);
+}
+function buildCost(b){
+  const lvl=state.buildings[b.id];let c={};
+  Object.entries(b.baseCost).forEach(([r,v])=>{c[r]=Math.ceil(v*Math.pow(b.costMult,lvl));});return c;
+}
+function canAfford(cost){return Object.entries(cost).every(([r,v])=>(state.res[r]||0)>=v);}
+function addLog(msg){state.log.unshift(msg);if(state.log.length>20)state.log.pop();}
+function fmt(n){return Math.floor(n).toLocaleString();}
+
+function resolveEvent(choiceIdx){
+  if(!state.event)return;
+  const choice=state.event.choices[choiceIdx];
+  choice.apply(state.res);
+  addLog(`${state.event.icon} ${state.event.title} — ${choice.label}. ${choice.effect}`);
+  state.event=null;state.eventTick=0;
+  state.nextEventTick=state.tick+EVENT_INTERVAL+Math.floor(Math.random()*20);
+  document.getElementById('event-slot').innerHTML='';
+  renderHud();
+}
+
+function spawnEvent(){
+  const available=EVENTS.filter(e=>!state.usedEvents.includes(e.id));
+  if(available.length===0){state.usedEvents=[];}
+  const pool=EVENTS.filter(e=>!state.usedEvents.includes(e.id));
+  if(pool.length===0)return;
+  const evt=pool[Math.floor(Math.random()*pool.length)];
+  state.event=evt;state.eventTick=0;
+  state.usedEvents.push(evt.id);
+  buildEventCard();
+}
+
+function buildEventCard(){
+  const slot=document.getElementById('event-slot');
+  if(!state.event){slot.innerHTML='';return;}
+  const evt=state.event;
+  slot.innerHTML=`<div class="event-card">
+    <div class="event-title">
+      <span class="evt-icon">${evt.icon}</span>
+      <span>${evt.title}</span>
+      <span class="event-timeout-label" id="evt-countdown">${EVENT_TIMEOUT}s</span>
+    </div>
+    <div class="event-body">${evt.body}</div>
+    <div class="event-choices">
+      ${evt.choices.map((c,i)=>`<button class="evt-btn" data-choice="${i}">
+        <span class="choice-label">${c.label}</span>
+        <span class="choice-effect">${c.effect}</span>
+      </button>`).join('')}
+    </div>
+    <div class="event-timer-bar" id="evt-timer" style="width:100%;transition:none"></div>
+  </div>`;
+  slot.querySelectorAll('.evt-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>resolveEvent(parseInt(btn.dataset.choice)));
+  });
+}
+
+function updateEventDisplay(){
+  if(!state.event)return;
+  const cd=document.getElementById('evt-countdown');
+  if(cd)cd.textContent=(EVENT_TIMEOUT-state.eventTick)+'s';
+  const bar=document.getElementById('evt-timer');
+  if(bar)bar.style.width=((1-state.eventTick/EVENT_TIMEOUT)*100)+'%';
+}
+
+function tick(){
+  state.tick++;
+  const rates=production();
+  Object.entries(rates).forEach(([r,v])=>{state.res[r]=(state.res[r]||0)+v;});
+  state.score=calcScore();
+  const newEra=getEra(state.score);
+  if(newEra>state.era){state.era=newEra;addLog(`✦ A new age dawns: ${ERAS[newEra].name}!`);renderBuildings();}
+  if(state.event){
+    state.eventTick++;
+    if(state.eventTick>=EVENT_TIMEOUT){
+      const pool=state.event.timeout;
+      const outcome=pool[Math.floor(Math.random()*pool.length)];
+      outcome.apply(state.res);
+      addLog(`${state.event.icon} ${state.event.title} — timed out. ${outcome.label} ${outcome.effect}`);
+      state.event=null;state.eventTick=0;
+      state.nextEventTick=state.tick+EVENT_INTERVAL+Math.floor(Math.random()*20);
+      document.getElementById('event-slot').innerHTML='';
+    } else {
+      updateEventDisplay();
+    }
+  } else if(state.tick>=state.nextEventTick){
+    spawnEvent();
+  }
+  renderHud();
+}
+
+function renderHud(){
+  const rates=production();
+  const eraIdx=state.era;const nextEra=ERAS[eraIdx+1];
+  document.getElementById('score-val').textContent=fmt(state.score);
+  document.getElementById('pop-line').textContent=`Congregation: ${getCongregation().toLocaleString()} · ${ERAS[eraIdx].name}`;
+  if(nextEra){
+    const pct=Math.min(100,Math.round((state.score-ERAS[eraIdx].threshold)/(nextEra.threshold-ERAS[eraIdx].threshold)*100));
+    document.getElementById('era-pct').textContent=pct+'%';
+    document.getElementById('era-bar').style.width=pct+'%';
+    document.getElementById('era-label').textContent=`→ ${nextEra.name}`;
+  } else {
+    document.getElementById('era-pct').textContent='100%';
+    document.getElementById('era-bar').style.width='100%';
+    document.getElementById('era-label').textContent='Eternal glory achieved';
+  }
+  document.getElementById('resources').innerHTML=['faith','timber','stone','food','offerings','pilgrims'].map(r=>{
+    const rate=rates[r]||0;
+    return `<div class="res">${ICONS[r]}<div><div class="val">${fmt(state.res[r]||0)}</div><div class="rate">${r}${rate>0?' +'+rate+'/s':''}</div></div></div>`;
+  }).join('');
+  const logEl=document.getElementById('log');
+  logEl.innerHTML=state.log.length===0
+    ?'<div style="color:#888">In the beginning, there was only silence and stone...</div>'
+    :state.log.map((l,i)=>`<div style="opacity:${Math.max(0.25,1-i*0.08)};color:${i===0?'inherit':'#888'}">${l}</div>`).join('');
+  updateBuildButtons();
+}
+
+function updateBuildButtons(){
+  BLDGS.forEach(b=>{
+    const btn=document.getElementById('btn-'+b.id);if(!btn)return;
+    const lvl=state.buildings[b.id];const cost=buildCost(b);
+    const locked=state.era<b.unlock;const isMax=lvl>=b.maxLvl;const affordable=canAfford(cost);
+    btn.disabled=locked||isMax||!affordable;
+    btn.className='btn'+(!locked&&!isMax&&affordable?' primary':'');
+    const costEl=document.getElementById('cost-'+b.id);
+    if(costEl&&!locked&&!isMax)costEl.innerHTML='Cost: '+Object.entries(cost).map(([r,v])=>`${ICONS[r]}${fmt(v)}`).join(' ');
+    const prodEl=document.getElementById('prod-'+b.id);
+    if(prodEl&&lvl>0){prodEl.innerHTML='Producing: '+Object.entries(b.prod).map(([r,v])=>`${ICONS[r]}<span>+${v*lvl}/s</span>`).join(' ');prodEl.style.display='';}
+    const lvlEl=document.getElementById('lvl-'+b.id);if(lvlEl)lvlEl.textContent=`lvl ${lvl}/${b.maxLvl}`;
+    const card=document.getElementById('card-'+b.id);if(card)card.className='bcard'+(locked?' locked':'')+(isMax?' maxed':'');
+  });
+}
+
+function build(id){
+  const b=BLDGS.find(x=>x.id===id);if(!b)return;
+  const cost=buildCost(b);if(!canAfford(cost))return;
+  Object.entries(cost).forEach(([r,v])=>{state.res[r]-=v;});
+  state.buildings[id]++;
+  addLog(`${b.icon} ${b.name} raised to level ${state.buildings[id]}.`);
+  renderBuildings();renderHud();
+}
+
+function renderBuildings(){
+  const container=document.getElementById('buildings');
+  container.innerHTML=BLDGS.map(b=>{
+    const lvl=state.buildings[b.id];const cost=buildCost(b);const affordable=canAfford(cost);
+    const locked=state.era<b.unlock;const isMax=lvl>=b.maxLvl;
+    const costStr=Object.entries(cost).map(([r,v])=>`${ICONS[r]}${fmt(v)}`).join(' ');
+    const prodStr=Object.entries(b.prod).map(([r,v])=>`${ICONS[r]}<span>+${v*Math.max(1,lvl)}/s</span>`).join(' ');
+    const unlockEra=b.unlock<ERAS.length?ERAS[b.unlock].name:'Age of Saints';
+    return `<div class="bcard${locked?' locked':''}${isMax?' maxed':''}" id="card-${b.id}">
+      <div class="bcard-header"><span class="bcard-icon">${b.icon}</span><span class="bcard-lvl" id="lvl-${b.id}">lvl ${lvl}/${b.maxLvl}</span></div>
+      <div class="bcard-name">${b.name}</div>
+      <div class="bcard-desc">${b.desc}</div>
+      <div class="bcard-prod" id="prod-${b.id}" style="${lvl>0?'':'display:none'}">${lvl>0?'Producing: '+prodStr:''}</div>
+      <div class="cost-row" id="cost-${b.id}">${!locked&&!isMax?'Cost: '+costStr:''}</div>
+      <button class="btn${(!locked&&!isMax&&affordable)?' primary':''}" id="btn-${b.id}"
+        ${locked||isMax||!affordable?'disabled':''} tabindex="${locked||isMax?'-1':'0'}">
+        ${locked?`🔒 Unlocks: ${unlockEra}`:isMax?'✓ Complete':'Build (+1 level)'}
+      </button>
+    </div>`;
+  }).join('');
+  BLDGS.forEach(b=>{
+    const btn=document.getElementById('btn-'+b.id);
+    if(btn)btn.addEventListener('click',()=>build(b.id));
+  });
+}
+
+document.getElementById('pray-btn').addEventListener('click',()=>{state.res.faith+=1;state.res.timber+=1;state.res.food+=1;renderHud();});
+document.getElementById('reset-btn').addEventListener('click',()=>{document.getElementById('confirm-bar').classList.add('visible');});
+document.getElementById('confirm-no').addEventListener('click',()=>{document.getElementById('confirm-bar').classList.remove('visible');});
+document.getElementById('confirm-yes').addEventListener('click',()=>{
+  state=freshState();addLog('The city was razed. A new covenant begins.');
+  document.getElementById('confirm-bar').classList.remove('visible');
+  document.getElementById('event-slot').innerHTML='';
+  renderBuildings();renderHud();
+});
+
+renderBuildings();renderHud();
+setInterval(tick,1000);
+</script>
+</body>
+</html>
