@@ -820,6 +820,8 @@ const MAP_H = 10;
 const FIRE_BURN_DAYS = 3;
 const FIRE_SPREAD_BASE = 0.45;
 const FIRE_SPREAD_FLOOR = 0.08;
+const ROBOT_DEGRADE_AFTER = 40;
+const ROBOT_DEGRADE_CHANCE = 0.12;
 
 function weightedRandom(items) {
   const total = items.reduce((s,i) => s + i.weight, 0);
@@ -885,12 +887,41 @@ const EVENTS = [
   },
   {
     id:'trader', title:'🤝 WANDERING TRADER',
-    desc:'A lone trader arrives with exotic goods.',
-    choices: [
-      { text:'Buy medicine (10🍖 → 8💊)', effect: s => { if(s.res.food>=10){s.res.food-=10;s.res.meds+=8;log('Bought medicine from trader.','good');}else{log('Not enough food!','warn');} } },
-      { text:'Buy metal (15🍖 → 12⚙)', effect: s => { if(s.res.food>=15){s.res.food-=15;s.res.metal+=12;log('Bought metal from trader.','good');}else{log('Not enough food!','warn');} } },
-      { text:'Send them away', effect: s => { log('You sent the trader away.','info'); } },
-    ]
+    desc: function() {
+      const robots = state.robots || [];
+      const offerRobot = robots.length && Math.random() < 0.35;
+      if (offerRobot) {
+        const robot = robots.find(r => r.condition === 'Broken') || robots[0];
+        const payout = robot.condition === 'Optimized' ? 32 : robot.functional ? 24 : 18;
+        return {
+          text: `A lone trader arrives with exotic goods. They eye ${robot.name} and offer ${payout}🍖 to take it.`,
+          robotName: robot.name,
+          payout
+        };
+      }
+      return { text: 'A lone trader arrives with exotic goods.' };
+    },
+    choices: function(ctx) {
+      const base = [
+        { text:'Buy medicine (10🍖 → 8💊)', effect: s => { if(s.res.food>=10){s.res.food-=10;s.res.meds+=8;log('Bought medicine from trader.','good');}else{log('Not enough food!','warn');} } },
+        { text:'Buy metal (15🍖 → 12⚙)', effect: s => { if(s.res.food>=15){s.res.food-=15;s.res.metal+=12;log('Bought metal from trader.','good');}else{log('Not enough food!','warn');} } },
+        { text:'Send them away', effect: s => { log('You sent the trader away.','info'); } },
+      ];
+      if (ctx.robotName) {
+        base.unshift({
+          text: `Sell ${ctx.robotName} (+${ctx.payout}🍖)`,
+          effect: s => {
+            if (!s.robots || !s.robots.length) { log('No robot available to sell.', 'warn'); return; }
+            const idx = s.robots.findIndex(r => r.name === ctx.robotName);
+            if (idx === -1) { log('The trader waited, but the robot was gone.', 'warn'); return; }
+            s.robots.splice(idx, 1);
+            s.res.food += ctx.payout;
+            log(`Sold ${ctx.robotName} to the trader. (+${ctx.payout}🍖)`, 'good');
+          }
+        });
+      }
+      return base;
+    }
   },
   {
     id:'plague', title:'🦠 SICKNESS SPREADING',
@@ -959,10 +990,6 @@ const EVENTS = [
       choices: [
       { text: 'Recover it', effect: s => {
         if (!s.robots) s.robots = [];
-        if (s.robots.length >= 2) {
-          log('The colony cannot house another robot right now.', 'info');
-          return;
-        }
         const centerIdx = Math.floor(MAP_H / 2) * MAP_W + Math.floor(MAP_W / 2);
         const availableNames = ROBOT_NAMES.filter(name => !s.robots.some(robot => robot.name === name));
         const name = availableNames.length
@@ -972,7 +999,8 @@ const EVENTS = [
           tileIdx: centerIdx,
           functional: false,
           condition: 'Broken',
-          name
+          name,
+          lastServiceDay: null
         });
         log(`Recovered ${name}, a broken robot. It has been brought to the colony center.`, 'good');
       }},
@@ -988,8 +1016,8 @@ const EVENTS = [
       desc: function() {
       const robots = state.robots || [];
       if (!robots.length) return { text: 'A traveler with a bag of heavy tools arrives. They offer to sell some scrap metal.' };
-      const broken = robots.find(robot => robot.condition === 'Broken');
-      if (broken) return { text: `A wandering mechanic spots the inactive ${broken.name}. "I can get this thing moving again, for a price," they offer.` };
+      const inactive = robots.find(robot => !robot.functional);
+      if (inactive) return { text: `A wandering mechanic spots the inactive ${inactive.name}. "I can get this thing moving again, for a price," they offer.` };
       return { text: `The mechanic returns. "Want to tune up ${robots[0].name}? I can make it more efficient."` };
       },
       choices: [
@@ -1000,14 +1028,23 @@ const EVENTS = [
             log('The tinkerer sold you some rare parts (+5⚙).', 'good');
             s.res.metal += 5;
           } else {
-            const broken = s.robots.find(robot => robot.condition === 'Broken');
-            if (broken) {
-              broken.functional = true;
-              broken.condition = 'Functional';
-              log(`The mechanic repaired ${broken.name}! It hums to life and starts wandering the fields.`, 'good');
+            const inactive = s.robots.find(robot => !robot.functional);
+            if (inactive) {
+              if (getOperationalRobotCount() >= 2) {
+                inactive.functional = false;
+                inactive.condition = 'Standby';
+                inactive.lastServiceDay = state.day;
+                log(`The mechanic repaired ${inactive.name}, but it remains on standby. Only two robots can operate at once.`, 'warn');
+              } else {
+                inactive.functional = true;
+                inactive.condition = 'Functional';
+                inactive.lastServiceDay = state.day;
+                log(`The mechanic repaired ${inactive.name}! It hums to life and starts wandering the fields.`, 'good');
+              }
             } else {
               const target = s.robots[0];
               target.condition = 'Optimized';
+              target.lastServiceDay = state.day;
               log(`The mechanic optimized ${target.name}. Its presence is even more inspiring.`, 'good');
             }
           }
@@ -1051,6 +1088,10 @@ function getNeighbors(idx) {
     }
   });
   return neighbors;
+}
+
+function getOperationalRobotCount() {
+  return (state.robots || []).filter(robot => robot.functional).length;
 }
 
 function getRobotMoveSteps(robot) {
@@ -1716,6 +1757,7 @@ function triggerRandomEvent() {
 
   const descResult = typeof evt.desc === 'function' ? evt.desc() : { text: evt.desc };
   const ctx = typeof descResult === 'object' && descResult.text !== undefined ? descResult : { text: descResult };
+  const choices = typeof evt.choices === 'function' ? evt.choices(ctx) : evt.choices;
 
   // Special-case: newcomers get handled by toast once colony is established
   if (evt.id === 'newcomer' && state.colonists.length >= 5) {
@@ -1730,7 +1772,7 @@ function triggerRandomEvent() {
 
   // Silent events resolve automatically without a modal
   if (evt.silent) {
-    evt.choices[0].effect(state, ctx);
+    choices[0].effect(state, ctx);
     renderAll();
     return;
   }
@@ -1740,7 +1782,7 @@ function triggerRandomEvent() {
   document.getElementById('event-desc').textContent = ctx.text;
   const choicesEl = document.getElementById('event-choices');
   choicesEl.innerHTML = '';
-  evt.choices.forEach(choice => {
+  choices.forEach(choice => {
     const btn = document.createElement('button');
     btn.className = 'choice-btn';
     btn.textContent = choice.text;
@@ -1883,10 +1925,29 @@ function gameTick() {
     }
   });
 
-  // Robot movement
-  const robots = state.robots || [];
-  robots.forEach(robot => {
+  // Robot degradation after long service
+  const allRobots = state.robots || [];
+  allRobots.forEach(robot => {
     if (!robot.functional) return;
+    if (robot.lastServiceDay == null) robot.lastServiceDay = state.day;
+    const serviceDays = state.day - robot.lastServiceDay;
+    if (serviceDays >= ROBOT_DEGRADE_AFTER && Math.random() < ROBOT_DEGRADE_CHANCE) {
+      robot.functional = false;
+      robot.condition = 'Broken';
+      log(`⚠ ${robot.name} has degraded after long service and shut down. It needs repairs.`, 'warn');
+    }
+  });
+
+  // Robot movement (only two can operate at once)
+  const functionalRobots = (state.robots || []).filter(robot => robot.functional);
+  if (functionalRobots.length > 2) {
+    functionalRobots.slice(2).forEach(robot => {
+      robot.functional = false;
+      robot.condition = 'Standby';
+    });
+  }
+  const robots = functionalRobots.slice(0, 2);
+  robots.forEach(robot => {
     const steps = getRobotMoveSteps(robot);
     for (let step = 0; step < steps; step++) {
       const target = chooseRobotTarget(robot.tileIdx);
@@ -2021,12 +2082,15 @@ function renderRobotStatus() {
     const statusClass = robot.functional ? 'status-good' : 'status-bad';
     const boost = robot.condition === 'Optimized' ? 10 : 5;
     const steps = getRobotMoveSteps(robot);
+    const inactiveText = robot.condition === 'Standby'
+      ? 'The unit is in standby. Only two robots can operate at once.'
+      : 'The unit is dormant. It needs specialized repairs to become functional.';
     return `
       <div style="margin-bottom:10px">
         <div style="font-size:0.85rem;color:var(--accent);margin-bottom:4px">🤖 ${robot.name}</div>
         <div style="font-size:0.72rem;margin-bottom:6px">Condition: <span class="${statusClass}">${robot.condition}</span></div>
         <div style="font-size:0.65rem;color:var(--dim);line-height:1.4">
-          ${robot.functional ? `Moves up to ${steps} tile${steps !== 1 ? 's' : ''} per day (avoids water when possible), plants on dirt/ash/grass, mines rock, and provides +${boost} morale to colonists it visits.` : 'The unit is dormant. It needs specialized repairs to become functional.'}
+          ${robot.functional ? `Moves up to ${steps} tile${steps !== 1 ? 's' : ''} per day (avoids water when possible), plants on dirt/ash/grass, mines rock, and provides +${boost} morale to colonists it visits.` : inactiveText}
         </div>
       </div>
     `;
